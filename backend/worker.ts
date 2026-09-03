@@ -1,9 +1,9 @@
 import 'dotenv/config';
-import { makeJobWorker } from './src/features/dataset/adapters/factory';
-import { datasetSchemaFiles } from './src/features/dataset/adapters/outbound/persistence/schema';
-import { closePool, getPool } from './src/shared/persistence/postgres/postgres-client';
-import { initializeDatabase } from './src/shared/persistence/postgres/initialize-database';
-import { onShutdown } from './src/shared/runtime/graceful-shutdown';
+import { schemaFiles } from '@app/composition/schema';
+import { makeJobWorker } from '@app/features/dataset/adapters/factory';
+import { closePool, getPool } from '@app/shared/persistence/postgres/postgres-client';
+import { initializeDatabase } from '@app/shared/persistence/postgres/initialize-database';
+import { onShutdown } from '@app/shared/runtime/graceful-shutdown';
 
 // Standalone job worker: the same worker the API can run in-process, but as its
 // own OS process. It shares no port with the API — coordination happens purely
@@ -11,7 +11,7 @@ import { onShutdown } from './src/shared/runtime/graceful-shutdown';
 // API (and each other) safely.
 async function main(): Promise<void> {
   const pool = getPool();
-  await initializeDatabase(pool, datasetSchemaFiles);
+  await initializeDatabase(pool, schemaFiles);
 
   const worker = makeJobWorker();
   worker.start();

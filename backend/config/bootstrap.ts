@@ -1,9 +1,9 @@
-import { makeJobWorker } from '../src/features/dataset/adapters/factory';
-import type { JobWorker } from '../src/features/dataset/application/worker/job-worker';
-import { datasetSchemaFiles } from '../src/features/dataset/adapters/outbound/persistence/schema';
-import { closePool, getPool } from '../src/shared/persistence/postgres/postgres-client';
-import { initializeDatabase } from '../src/shared/persistence/postgres/initialize-database';
-import { onShutdown } from '../src/shared/runtime/graceful-shutdown';
+import { schemaFiles } from '@app/composition/schema';
+import { makeJobWorker } from '@app/features/dataset/adapters/factory';
+import type { JobWorker } from '@app/features/dataset/application/worker/job-worker';
+import { closePool, getPool } from '@app/shared/persistence/postgres/postgres-client';
+import { initializeDatabase } from '@app/shared/persistence/postgres/initialize-database';
+import { onShutdown } from '@app/shared/runtime/graceful-shutdown';
 
 // Sails runs this once during `lift`, before the server accepts requests. We
 // connect to PostgreSQL and ensure the schema exists. The background worker runs
@@ -16,7 +16,7 @@ export = {
   bootstrap: async function bootstrap(done: (err?: Error) => void): Promise<void> {
     try {
       const pool = getPool();
-      await initializeDatabase(pool, datasetSchemaFiles);
+      await initializeDatabase(pool, schemaFiles);
 
       if (runWorkerInApi()) {
         worker = makeJobWorker();
