@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
+import { askQuestion } from '../api/questions';
 import { listDatasets } from '../api/datasets';
+import { QuestionAnswer } from '../components/QuestionAnswer';
+import { useQuestionResult } from '../hooks/useQuestionResult';
 import type { Page } from '../App';
 import type { Dataset } from '../types/dataset';
 
 interface Props {
   onNavigate: (page: Page) => void;
 }
+
+const MAX_QUESTION_LENGTH = 2000;
 
 function optionLabel(dataset: Dataset): string {
   if (dataset.metadata) {
@@ -20,6 +25,13 @@ export function AskQuestionPage({ onNavigate }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState('');
   const [question, setQuestion] = useState('');
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  // The id of the question currently being answered; drives the polling hook.
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+
+  const { question: result, error: pollError } = useQuestionResult(activeQuestionId);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +54,28 @@ export function AskQuestionPage({ onNavigate }: Props) {
     };
   }, []);
 
+  // Disable submission while a question is in flight (submitting or still
+  // processing), or when the form is incomplete.
+  const answering = submitting || result?.status === 'PROCESSING';
+  const canSubmit = !answering && selectedDatasetId !== '' && question.trim().length > 0;
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    setSubmitting(true);
+    setSubmitError(null);
+    setActiveQuestionId(null); // clear any previous answer while the new one starts
+    try {
+      const { question: created } = await askQuestion(selectedDatasetId, question.trim());
+      setActiveQuestionId(created.id);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit the question.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="page">
       <h1>Ask a Question</h1>
@@ -62,13 +96,14 @@ export function AskQuestionPage({ onNavigate }: Props) {
           </button>
         </div>
       ) : (
-        <div className="panel">
+        <form className="panel" onSubmit={onSubmit}>
           <div className="field">
             <label htmlFor="dataset-select">Dataset</label>
             <select
               id="dataset-select"
               value={selectedDatasetId}
               onChange={(event) => setSelectedDatasetId(event.target.value)}
+              disabled={answering}
             >
               {readyDatasets.map((dataset) => (
                 <option key={dataset.id} value={dataset.id}>
@@ -83,28 +118,36 @@ export function AskQuestionPage({ onNavigate }: Props) {
             <textarea
               id="question"
               rows={4}
+              maxLength={MAX_QUESTION_LENGTH}
               placeholder="What were the top 10 products by revenue?"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
+              disabled={answering}
             />
           </div>
 
           <div className="ask-actions">
-            {/* Intentionally disabled: the query service is not connected yet. */}
-            <button type="button" className="btn btn-primary" disabled>
-              Ask Question
+            <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+              {answering ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Answering…
+                </>
+              ) : (
+                'Ask Question'
+              )}
             </button>
-            <span className="muted helper">
-              Question answering will be enabled once the query service is connected.
-            </span>
+            {submitError && (
+              <span className="banner banner-error" role="alert">
+                {submitError}
+              </span>
+            )}
           </div>
-        </div>
+        </form>
       )}
 
-      <section className="panel answer-panel">
-        <h3>Answer</h3>
-        <p className="muted">Your answer will appear here once question answering is connected.</p>
-      </section>
+      {(submitting || activeQuestionId) && (
+        <QuestionAnswer submitting={submitting} question={result} error={pollError} />
+      )}
     </div>
   );
 }
