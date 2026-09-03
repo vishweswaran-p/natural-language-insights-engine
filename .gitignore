@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build / compiled output
+dist/
+build/
+.tmp/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Uploaded datasets (introduced in a later phase)
+uploads/
+data/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE / OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp

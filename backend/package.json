@@ -1,0 +1,24 @@
+{
+  "name": "@nlie/backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Natural Language Insights Engine backend (Sails + TypeScript, Ports & Adapters).",
+  "main": "dist/app.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/app.js",
+    "dev": "npm run build && node dist/app.js"
+  },
+  "dependencies": {
+    "sails": "^1.5.14"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "natural-language-insights-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Natural Language Insights Engine — monorepo root (Phase 0).",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "start:backend": "npm --prefix backend run start",
+    "typecheck": "npm --prefix backend run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
