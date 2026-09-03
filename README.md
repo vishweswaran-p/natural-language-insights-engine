@@ -1,82 +1,65 @@
 # Natural Language Insights Engine
 
-Upload an arbitrary transactional CSV, profile it asynchronously, and ask
-plain-English analytical questions that are answered by executing safe,
-LLM-generated SQL against the uploaded dataset.
+Upload a CSV dataset and ask plain-English analytical questions, answered by
+executing safe, LLM-generated SQL against the uploaded data.
 
-> **Status: Phase 0 (scaffolding only).**
-> This phase establishes the repository layout and a lightweight
-> Ports & Adapters (Hexagonal) architecture for the backend. None of the
-> product functionality (CSV upload, profiling, LLM SQL generation, query
-> execution) is implemented yet — those arrive in later phases.
+> **Status:** early phase. The backend supports CSV upload and dataset listing;
+> profiling, natural-language querying, and the UI arrive in later phases.
 
-## Repository layout
+## Tech stack
 
-```
-.
-├── backend/    # Node + TypeScript + Sails (thin HTTP/runtime layer)
-└── frontend/   # React + TypeScript + Vite (added in a later step)
-```
+- **Backend:** Node.js, TypeScript, Sails.js, PostgreSQL
+- **Frontend:** React, TypeScript, Vite _(added in a later phase)_
 
-### Backend architecture (feature-based Ports & Adapters)
+## Prerequisites
 
-Feature-based hexagonal architecture (inbound/outbound adapters). Sails is only
-the HTTP runtime — there are **no** Sails controllers or hand-written per-feature
-route mappings; features own their routes.
+- Node.js >= 20
+- Docker (for PostgreSQL)
 
-- **`src/features/<feature>/`**
-  - `application/` — use-cases, ports (interfaces), and domain types. No HTTP,
-    no framework/ORM imports.
-  - `adapters/factory.ts` — the single place that builds a use-case and (later)
-    wires its outbound adapters in (plain TypeScript, no DI framework).
-  - `adapters/inbound/http/routes/` — thin route adapters + `index.ts` exporting
-    `getRoutes()`.
-  - `adapters/outbound/` — concrete adapters implementing the ports (added when a
-    use-case needs I/O; currently placeholders for `dataset`).
-- **`src/shared/http/`** — a tiny framework-agnostic HTTP seam: `types.ts`
-  (`RouteDefinition`, `HttpResponse`, `Ctx`), `response.ts` (`ok` / `noContent` /
-  `withStatus`), and `bridge/sails.ts` (adapts route definitions to a Sails route
-  map — the only touchpoint with Sails).
-- **`config/routes.ts`** — the HTTP composition root: gathers each feature's
-  `getRoutes()` and hands them to the Sails bridge.
-
-Everything under `src/` stays free of Sails imports. The `health` endpoint is
-implemented end-to-end in this style; the `dataset` feature currently holds the
-finalized domain types and ports only.
-
-## Local development
-
-Prerequisites: Node.js >= 20.
-
-### Backend
+## Setup & run
 
 ```bash
+# 1. Start PostgreSQL (docker compose, host port 5435)
+npm run db:up
+
+# 2. Configure the backend
 cd backend
+cp .env.example .env      # DATABASE_URL already matches the compose port
 npm install
-npm run dev        # compiles TypeScript then lifts Sails
+
+# 3. Start the backend (creates the DB schema on startup)
+npm run dev
 ```
 
-Then verify the health endpoint:
+The API is now available at `http://localhost:1337`.
+
+## Try it
 
 ```bash
+# Health check
 curl http://localhost:1337/health
-# { "status": "ok" }
+
+# Upload a CSV
+curl -F "file=@sales.csv;type=text/csv" http://localhost:1337/api/datasets
+
+# List / fetch datasets
+curl http://localhost:1337/api/datasets
+curl http://localhost:1337/api/datasets/<id>
 ```
 
-Other backend scripts: `npm run build`, `npm run start`, `npm run typecheck`.
+Uploads must be `.csv` and up to 200 MB. Once the UI lands in a later phase, this
+is where you'll upload datasets and ask questions from the browser.
 
-From the repo root you can also run `npm run dev:backend` and
-`npm run typecheck`.
+## How it's organized
 
-### Frontend
-
-Added in a later step (React + TypeScript + Vite).
+A monorepo with `backend/` and `frontend/` (frontend added later). The backend
+uses a lightweight Ports & Adapters (hexagonal) architecture: business logic
+lives in framework-agnostic use-cases, and Sails is only a thin HTTP layer.
 
 ## Deferred to later phases
 
-Docker/compose, PostgreSQL, Redis, BullMQ, DuckDB, LLM providers, file
-upload, migrations, dataset ingestion, authentication, request validation, and
-frontend styling are intentionally **not** included in Phase 0. The HTTP layer
-is kept deliberately small (a single error boundary in the Sails bridge);
-middleware, auth, input/output validation, and typed error mapping are added in
-later phases when a use-case actually needs them.
+- Dataset profiling (schema + statistics via DuckDB)
+- Async processing and status transitions (`PROCESSING → READY/FAILED`)
+- Natural-language questions → LLM-generated SQL → query execution
+- Frontend UI
+- Authentication, pagination, and automated tests
