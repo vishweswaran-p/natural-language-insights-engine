@@ -1,32 +1,39 @@
 import { randomUUID } from 'node:crypto';
 import type { Dataset } from '../domain/dataset';
 import { DatasetStatus } from '../domain/dataset-status';
-import type { DatasetRepository } from '../ports/dataset-repository';
+import type { Job } from '../domain/job';
+import { JobType } from '../domain/job';
+import type { DatasetCommand } from '../ports/dataset.command';
 import type { FileStorage } from '../ports/file-storage';
+import type { JobQueue } from '../ports/job-queue';
 
-// Validated upload details handed in by the inbound adapter.
 export interface CreateDatasetInput {
   filename: string;
   fileSizeBytes: number;
   mimeType: string;
-  // Temporary path of the received upload; moved into controlled storage here.
-  sourcePath: string;
+  sourcePath: string; // temp path of the received upload
 }
 
-// Application service: persist an uploaded dataset. No profiling happens yet —
-// the dataset intentionally stays in PROCESSING until a later phase.
+export interface CreateDatasetResult {
+  dataset: Dataset;
+  job: Job;
+}
+
+// Store the uploaded file, persist the dataset as PROCESSING, and enqueue an
+// INGESTION job. Profiling happens asynchronously in the worker.
 export class CreateDatasetUseCase {
   constructor(
-    private readonly repository: DatasetRepository,
+    private readonly datasets: DatasetCommand,
     private readonly storage: FileStorage,
+    private readonly jobQueue: JobQueue,
   ) {}
 
-  async exec(input: CreateDatasetInput): Promise<Dataset> {
+  async exec(input: CreateDatasetInput): Promise<CreateDatasetResult> {
     const id = randomUUID();
     const { storagePath } = await this.storage.store({ datasetId: id, sourcePath: input.sourcePath });
 
     const now = new Date();
-    const dataset: Dataset = {
+    const toCreate: Dataset = {
       id,
       filename: input.filename,
       storagePath,
@@ -39,14 +46,28 @@ export class CreateDatasetUseCase {
       updatedAt: now,
     };
 
+    let dataset: Dataset;
     try {
-      return await this.repository.create(dataset);
+      dataset = await this.datasets.create(toCreate);
     } catch (err) {
-      // Compensating cleanup: the file was stored but the DB insert failed.
-      // Best-effort — a failing cleanup must not mask the original error.
+      // File was stored but the insert failed: clean it up (best-effort).
       await this.storage.remove(id).catch((cleanupErr) => {
         // eslint-disable-next-line no-console
         console.error(`Failed to clean up stored file for dataset ${id}`, cleanupErr);
+      });
+      throw err;
+    }
+
+    // Create + enqueue are not one DB transaction (that would couple two adapters
+    // behind a shared unit-of-work). We compensate instead: if enqueue fails, mark
+    // the dataset FAILED so it is never left stuck in PROCESSING.
+    try {
+      const job = await this.jobQueue.enqueue({ type: JobType.Ingestion, datasetId: id });
+      return { dataset, job };
+    } catch (err) {
+      await this.datasets.markFailed(id, 'Failed to enqueue ingestion job.').catch((markErr) => {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to mark dataset ${id} FAILED after enqueue error`, markErr);
       });
       throw err;
     }

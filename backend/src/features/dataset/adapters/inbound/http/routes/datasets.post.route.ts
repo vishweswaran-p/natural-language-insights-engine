@@ -3,6 +3,7 @@ import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
 import { makeCreateDatasetUseCase } from '../../../factory';
 import { ApiError, toResponse } from '../api-error';
 import { toDatasetDto } from '../dataset-dto';
+import { toJobDto } from '../job-dto';
 import { cleanupTempFiles, receiveUpload, UploadedFile } from '../multipart';
 
 // Accepted MIME types for CSV. Browsers/platforms are inconsistent, so we accept
@@ -15,20 +16,21 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/octet-stream',
 ]);
 
-// POST /api/datasets — upload a CSV, store it, and create a PROCESSING dataset.
+// POST /api/datasets — upload a CSV, store it, create a PROCESSING dataset, and
+// enqueue an INGESTION job. Returns immediately; profiling happens in the worker.
 const handler = (ctx: Ctx) =>
   toResponse(async () => {
     const files = await receiveUpload(ctx.req, 'file');
     const file = validateSingleCsv(files);
 
-    const dataset = await makeCreateDatasetUseCase().exec({
+    const { dataset, job } = await makeCreateDatasetUseCase().exec({
       filename: file.filename,
       fileSizeBytes: file.size,
       mimeType: file.type,
       sourcePath: file.fd,
     });
 
-    return withStatus(201, toDatasetDto(dataset));
+    return withStatus(202, { dataset: toDatasetDto(dataset), job: toJobDto(job) });
   });
 
 export const route: RouteDefinition = { method: 'post', path: '/api/datasets', handler };

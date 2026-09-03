@@ -1,11 +1,11 @@
 import type { Dataset } from '../domain/dataset';
-import type { DatasetRepository } from '../ports/dataset-repository';
+import type { DatasetQuery } from '../ports/dataset.query';
 
-// Application service: list datasets (newest first — ordering owned by the repo).
+// List datasets, newest first (ordering owned by the query adapter).
 export class ListDatasetsUseCase {
-  constructor(private readonly repository: DatasetRepository) {}
+  constructor(private readonly datasets: DatasetQuery) {}
 
   exec(): Promise<Dataset[]> {
-    return this.repository.list();
+    return this.datasets.list();
   }
 }
