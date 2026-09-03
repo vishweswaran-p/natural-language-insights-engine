@@ -1,5 +1,5 @@
-import type { Dataset } from '../domain/dataset';
-import type { DatasetMetadata } from '../domain/dataset-metadata';
+import type { Dataset } from '@app/features/dataset/application/domain/dataset';
+import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
 
 // Write side of dataset persistence.
 export interface DatasetCommand {

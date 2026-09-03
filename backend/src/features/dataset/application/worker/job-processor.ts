@@ -1,4 +1,4 @@
-import type { Job, JobType } from '../domain/job';
+import type { Job, JobType } from '@app/features/dataset/application/domain/job';
 
 // Raised by a processor for an expected failure. `safeMessage` is client-safe and
 // is what gets persisted/returned; the underlying `internalCause` is logged, never exposed.

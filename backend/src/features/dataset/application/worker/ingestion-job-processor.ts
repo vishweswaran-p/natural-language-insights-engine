@@ -1,8 +1,8 @@
-import { type Job, JobType } from '../domain/job';
-import type { DatasetCommand } from '../ports/dataset.command';
-import type { DatasetProfiler } from '../ports/dataset-profiler';
-import type { DatasetQuery } from '../ports/dataset.query';
-import { type JobProcessor, ProcessingError } from './job-processor';
+import { type Job, JobType } from '@app/features/dataset/application/domain/job';
+import type { DatasetCommand } from '@app/features/dataset/application/ports/dataset.command';
+import type { DatasetProfiler } from '@app/features/dataset/application/ports/dataset-profiler';
+import type { DatasetQuery } from '@app/features/dataset/application/ports/dataset.query';
+import { type JobProcessor, ProcessingError } from '@app/features/dataset/application/worker/job-processor';
 
 // Client-safe message. Real error details are logged, never persisted/returned.
 const SAFE_ERROR_MESSAGE = 'Dataset profiling failed.';

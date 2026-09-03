@@ -1,4 +1,4 @@
-import type { Job, JobStatus, JobType } from '../../../application/domain/job';
+import type { Job, JobStatus, JobType } from '@app/features/dataset/application/domain/job';
 
 // Public API representation of a job. Excludes payload/result (internal detail).
 export interface JobDto {

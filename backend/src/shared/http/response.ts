@@ -1,4 +1,4 @@
-import type { Headers, HttpResponse } from './types';
+import type { Headers, HttpResponse } from '@app/shared/http/types';
 
 export function ok<T>(body: T, headers?: Headers): HttpResponse<T> {
   return { status: 200, body, headers };

@@ -1,7 +1,7 @@
-import { ok } from '../../../../../../shared/http';
-import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
-import type { HealthStatus } from '../../../../application/use-cases/get-health.use-case';
-import { makeGetHealthUseCase } from '../../../factory';
+import { ok } from '@app/shared/http';
+import type { Ctx, RouteDefinition } from '@app/shared/http';
+import type { HealthStatus } from '@app/features/health/application/use-cases/get-health.use-case';
+import { makeGetHealthUseCase } from '@app/features/health/adapters/factory';
 
 // Thin inbound HTTP adapter: build the use-case via the factory, run it, and
 // map the result to the HTTP response. No business logic here.

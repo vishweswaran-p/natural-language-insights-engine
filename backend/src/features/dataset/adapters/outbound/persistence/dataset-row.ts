@@ -1,7 +1,7 @@
 import type { QueryResultRow } from 'pg';
-import type { Dataset } from '../../../application/domain/dataset';
-import type { DatasetStatus } from '../../../application/domain/dataset-status';
-import type { DatasetMetadata } from '../../../application/domain/dataset-metadata';
+import type { Dataset } from '@app/features/dataset/application/domain/dataset';
+import type { DatasetStatus } from '@app/features/dataset/application/domain/dataset-status';
+import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
 
 // Column list and row -> domain mapping shared by the dataset query/command adapters.
 

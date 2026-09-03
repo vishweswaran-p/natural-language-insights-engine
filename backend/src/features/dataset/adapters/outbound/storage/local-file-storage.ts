@@ -1,6 +1,6 @@
 import { copyFile, mkdir, rename, rm, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import type { FileStorage, StoreFileInput, StoredFile } from '../../../application/ports/file-storage';
+import type { FileStorage, StoreFileInput, StoredFile } from '@app/features/dataset/application/ports/file-storage';
 
 // Outbound adapter: stores uploaded files on the local filesystem under a
 // controlled directory. Layout: <root>/<datasetId>/original.csv

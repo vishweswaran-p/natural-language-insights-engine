@@ -7,8 +7,8 @@ import type {
   DatasetWarning,
   Primitive,
   TopValue,
-} from '../../../application/domain/dataset-metadata';
-import type { DatasetProfiler, ProfileDatasetInput } from '../../../application/ports/dataset-profiler';
+} from '@app/features/dataset/application/domain/dataset-metadata';
+import type { DatasetProfiler, ProfileDatasetInput } from '@app/features/dataset/application/ports/dataset-profiler';
 
 // The only file that imports DuckDB: profiles a CSV through an in-memory connection
 // and returns domain DatasetMetadata. DuckDB specifics never leak past this adapter.

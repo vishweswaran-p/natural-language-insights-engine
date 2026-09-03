@@ -1,5 +1,5 @@
-import type { DatasetStatus } from './dataset-status';
-import type { DatasetMetadata } from './dataset-metadata';
+import type { DatasetStatus } from '@app/features/dataset/application/domain/dataset-status';
+import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
 
 // Minimal Dataset entity. Only fields we are already confident about are
 // included; additional business fields will be added when needed.

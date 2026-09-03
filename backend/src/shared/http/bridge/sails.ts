@@ -1,4 +1,4 @@
-import type { Ctx, PlatformRequest, RouteDefinition } from '../types';
+import type { Ctx, PlatformRequest, RouteDefinition } from '@app/shared/http/types';
 
 /** Minimal `res` contract this bridge uses (Sails/Express are compatible). */
 type SailsResponseLike = {

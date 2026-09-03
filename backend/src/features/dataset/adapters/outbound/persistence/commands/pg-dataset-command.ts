@@ -1,8 +1,8 @@
 import type { Pool } from 'pg';
-import type { Dataset } from '../../../../application/domain/dataset';
-import type { DatasetMetadata } from '../../../../application/domain/dataset-metadata';
-import type { DatasetCommand } from '../../../../application/ports/dataset.command';
-import { DATASET_COLUMNS, toDataset } from '../dataset-row';
+import type { Dataset } from '@app/features/dataset/application/domain/dataset';
+import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
+import type { DatasetCommand } from '@app/features/dataset/application/ports/dataset.command';
+import { DATASET_COLUMNS, toDataset } from '@app/features/dataset/adapters/outbound/persistence/dataset-row';
 
 // Write adapter for datasets (parameterized queries only).
 export class PgDatasetCommand implements DatasetCommand {

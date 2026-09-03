@@ -1,4 +1,4 @@
-import type { DatasetMetadata } from '../domain/dataset-metadata';
+import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
 
 // Port: profiles a stored dataset file and produces its schema/statistics
 // metadata. The contract is pure domain — no DuckDB, database, or Sails types.

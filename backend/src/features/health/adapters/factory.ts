@@ -1,4 +1,4 @@
-import { GetHealthUseCase } from '../application/use-cases/get-health.use-case';
+import { GetHealthUseCase } from '@app/features/health/application/use-cases/get-health.use-case';
 
 // Feature factory: the single place where a use-case is assembled from its
 // (concrete) dependencies. Health has no outbound ports/adapters yet, so this

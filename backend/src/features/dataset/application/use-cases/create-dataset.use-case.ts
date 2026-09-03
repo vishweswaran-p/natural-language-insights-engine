@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { Dataset } from '../domain/dataset';
-import { DatasetStatus } from '../domain/dataset-status';
-import type { Job } from '../domain/job';
-import { JobType } from '../domain/job';
-import type { DatasetCommand } from '../ports/dataset.command';
-import type { FileStorage } from '../ports/file-storage';
-import type { JobQueue } from '../ports/job-queue';
+import type { Dataset } from '@app/features/dataset/application/domain/dataset';
+import { DatasetStatus } from '@app/features/dataset/application/domain/dataset-status';
+import type { Job } from '@app/features/dataset/application/domain/job';
+import { JobType } from '@app/features/dataset/application/domain/job';
+import type { DatasetCommand } from '@app/features/dataset/application/ports/dataset.command';
+import type { FileStorage } from '@app/features/dataset/application/ports/file-storage';
+import type { JobQueue } from '@app/features/dataset/application/ports/job-queue';
 
 export interface CreateDatasetInput {
   filename: string;

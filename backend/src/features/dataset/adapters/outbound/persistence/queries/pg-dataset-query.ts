@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
-import type { Dataset } from '../../../../application/domain/dataset';
-import type { DatasetQuery } from '../../../../application/ports/dataset.query';
-import { DATASET_COLUMNS, toDataset } from '../dataset-row';
+import type { Dataset } from '@app/features/dataset/application/domain/dataset';
+import type { DatasetQuery } from '@app/features/dataset/application/ports/dataset.query';
+import { DATASET_COLUMNS, toDataset } from '@app/features/dataset/adapters/outbound/persistence/dataset-row';
 
 // Read adapter for datasets (parameterized queries only).
 export class PgDatasetQuery implements DatasetQuery {

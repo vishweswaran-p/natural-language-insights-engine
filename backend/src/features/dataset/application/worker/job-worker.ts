@@ -1,7 +1,7 @@
-import { JobStatus } from '../domain/job';
-import type { Job } from '../domain/job';
-import type { JobQueue } from '../ports/job-queue';
-import { type JobProcessor, ProcessingError } from './job-processor';
+import { JobStatus } from '@app/features/dataset/application/domain/job';
+import type { Job } from '@app/features/dataset/application/domain/job';
+import type { JobQueue } from '@app/features/dataset/application/ports/job-queue';
+import { type JobProcessor, ProcessingError } from '@app/features/dataset/application/worker/job-processor';
 
 const DEFAULT_POLL_INTERVAL_MS = 500;
 const DEFAULT_STALE_AFTER_MS = 10 * 60 * 1000; // treat RUNNING jobs older than 10m as stale

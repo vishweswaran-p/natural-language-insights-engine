@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Pool, QueryResultRow } from 'pg';
-import type { Job, JobStatus, JobType } from '../../../application/domain/job';
-import type { EnqueueJobInput, JobQueue } from '../../../application/ports/job-queue';
+import type { Job, JobStatus, JobType } from '@app/features/dataset/application/domain/job';
+import type { EnqueueJobInput, JobQueue } from '@app/features/dataset/application/ports/job-queue';
 
 // PostgreSQL-backed JobQueue. The only place that knows the jobs table exists:
 // SQL, row locking, attempt counting, and stale recovery all live here. It never
