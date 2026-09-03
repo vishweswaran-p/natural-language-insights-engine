@@ -1,0 +1,22 @@
+# Local development infrastructure. Only PostgreSQL runs in Docker at this stage
+# (the backend and frontend are run directly on the host).
+services:
+  postgres:
+    image: postgres:16
+    container_name: insights-postgres
+    environment:
+      POSTGRES_DB: insights
+      POSTGRES_USER: insights
+      POSTGRES_PASSWORD: insights
+    ports:
+      - "5435:5432"
+    volumes:
+      - insights-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U insights -d insights"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  insights-pg-data:

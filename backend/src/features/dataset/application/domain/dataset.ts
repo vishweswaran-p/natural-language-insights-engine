@@ -9,7 +9,10 @@ export interface Dataset {
   filename: string;
   storagePath: string;
   status: DatasetStatus;
+  // Null while a dataset is still being processed (populated by profiling).
   metadata: DatasetMetadata | null;
+  // Null unless the dataset failed processing.
+  errorMessage: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

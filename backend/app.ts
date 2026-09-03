@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import sails = require('sails');
 
 // Entry point / composition of the HTTP runtime.

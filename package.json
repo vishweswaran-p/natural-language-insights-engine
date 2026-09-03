@@ -7,7 +7,9 @@
     "dev:backend": "npm --prefix backend run dev",
     "build:backend": "npm --prefix backend run build",
     "start:backend": "npm --prefix backend run start",
-    "typecheck": "npm --prefix backend run typecheck"
+    "typecheck": "npm --prefix backend run typecheck",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
   },
   "engines": {
     "node": ">=20"
