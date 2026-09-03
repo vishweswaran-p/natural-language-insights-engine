@@ -5,6 +5,7 @@ import type { Dataset } from '../domain/dataset';
 // Concrete adapters (e.g. Postgres) will implement this under adapters/outbound.
 
 export interface DatasetRepository {
-  save(dataset: Dataset): Promise<void>;
+  create(dataset: Dataset): Promise<Dataset>;
   findById(id: string): Promise<Dataset | null>;
+  list(): Promise<Dataset[]>;
 }

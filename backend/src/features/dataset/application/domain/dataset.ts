@@ -8,6 +8,8 @@ export interface Dataset {
   id: string;
   filename: string;
   storagePath: string;
+  fileSizeBytes: number;
+  mimeType: string;
   status: DatasetStatus;
   // Null while a dataset is still being processed (populated by profiling).
   metadata: DatasetMetadata | null;
