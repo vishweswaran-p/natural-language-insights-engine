@@ -17,7 +17,8 @@
     "@duckdb/node-api": "^1.5.5-r.4",
     "dotenv": "^16.4.0",
     "pg": "^8.13.0",
-    "sails": "^1.5.14"
+    "sails": "^1.5.14",
+    "serve-static": "^1.16.2"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
