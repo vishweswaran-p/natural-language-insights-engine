@@ -1,5 +1,6 @@
 import { ApiError, toResponse, withStatus } from '@app/shared/http';
 import type { Ctx, RouteDefinition } from '@app/shared/http';
+import { toJobDto } from '@app/features/dataset/adapters/inbound/http/job-dto';
 import { DatasetNotQueryableError } from '@app/features/question/application/use-cases/ask-question.use-case';
 import { makeAskQuestionUseCase } from '@app/features/question/adapters/factory';
 import { toQuestionDto } from '@app/features/question/adapters/inbound/http/question-dto';
@@ -25,8 +26,8 @@ const handler = (ctx: Ctx) =>
     }
 
     try {
-      const created = await makeAskQuestionUseCase().exec({ datasetId, question });
-      return withStatus(202, { question: toQuestionDto(created) });
+      const { question: created, job } = await makeAskQuestionUseCase().exec({ datasetId, question });
+      return withStatus(202, { question: toQuestionDto(created), job: toJobDto(job) });
     } catch (err) {
       if (err instanceof DatasetNotQueryableError) {
         const status = err.reason === 'NOT_FOUND' ? 404 : 409;

@@ -4,7 +4,6 @@ import { GetDatasetUseCase } from '@app/features/dataset/application/use-cases/g
 import { GetJobUseCase } from '@app/features/dataset/application/use-cases/get-job.use-case';
 import { ListDatasetsUseCase } from '@app/features/dataset/application/use-cases/list-datasets.use-case';
 import { IngestionJobProcessor } from '@app/features/dataset/application/worker/ingestion-job-processor';
-import { JobWorker } from '@app/features/dataset/application/worker/job-worker';
 import { PgJobQueue } from '@app/features/dataset/adapters/outbound/jobs/pg-job-queue';
 import { PgDatasetCommand } from '@app/features/dataset/adapters/outbound/persistence/commands/pg-dataset-command';
 import { PgDatasetQuery } from '@app/features/dataset/adapters/outbound/persistence/queries/pg-dataset-query';
@@ -15,15 +14,20 @@ import { LocalFileStorage } from '@app/features/dataset/adapters/outbound/storag
 // application code never `new` an adapter. The pg Pool is shared; adapters are stateless.
 
 const datasetCommand = (): PgDatasetCommand => new PgDatasetCommand(getPool());
-const jobQueue = (): PgJobQueue => new PgJobQueue(getPool());
 const storage = (): LocalFileStorage => new LocalFileStorage();
 const profiler = (): DuckDbDatasetProfiler => new DuckDbDatasetProfiler();
 
 // Read side of datasets, reused by other features (e.g. question answering).
 export const makeDatasetQuery = (): PgDatasetQuery => new PgDatasetQuery(getPool());
 
+// The shared job queue and this feature's processor, exposed so the background
+// composition root can assemble a worker across features.
+export const makeJobQueue = (): PgJobQueue => new PgJobQueue(getPool());
+export const makeIngestionJobProcessor = (): IngestionJobProcessor =>
+  new IngestionJobProcessor(makeDatasetQuery(), datasetCommand(), profiler());
+
 export function makeCreateDatasetUseCase(): CreateDatasetUseCase {
-  return new CreateDatasetUseCase(datasetCommand(), storage(), jobQueue());
+  return new CreateDatasetUseCase(datasetCommand(), storage(), makeJobQueue());
 }
 
 export function makeListDatasetsUseCase(): ListDatasetsUseCase {
@@ -35,10 +39,5 @@ export function makeGetDatasetUseCase(): GetDatasetUseCase {
 }
 
 export function makeGetJobUseCase(): GetJobUseCase {
-  return new GetJobUseCase(jobQueue());
-}
-
-export function makeJobWorker(): JobWorker {
-  const ingestion = new IngestionJobProcessor(makeDatasetQuery(), datasetCommand(), profiler());
-  return new JobWorker(jobQueue(), [ingestion]);
+  return new GetJobUseCase(makeJobQueue());
 }

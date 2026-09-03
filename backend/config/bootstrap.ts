@@ -1,5 +1,5 @@
 import { schemaFiles } from '@app/composition/schema';
-import { makeJobWorker } from '@app/features/dataset/adapters/factory';
+import { makeJobWorker } from '@app/composition/worker';
 import type { JobWorker } from '@app/features/dataset/application/worker/job-worker';
 import { closePool, getPool } from '@app/shared/persistence/postgres/postgres-client';
 import { initializeDatabase } from '@app/shared/persistence/postgres/initialize-database';

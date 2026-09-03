@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { DatasetStatus } from '@app/features/dataset/application/domain/dataset-status';
+import type { Job } from '@app/features/dataset/application/domain/job';
+import { JobType } from '@app/features/dataset/application/domain/job';
 import type { DatasetQuery } from '@app/features/dataset/application/ports/dataset.query';
+import type { JobQueue } from '@app/features/dataset/application/ports/job-queue';
 import type { Question } from '@app/features/question/application/domain/question';
 import type { QuestionCommand } from '@app/features/question/application/ports/question.command';
 
@@ -22,15 +25,22 @@ export interface AskQuestionInput {
   question: string;
 }
 
-// Records a question against a READY dataset as PROCESSING. Answering it (LLM →
-// SQL → execution) happens asynchronously in the worker.
+export interface AskQuestionResult {
+  question: Question;
+  job: Job;
+}
+
+// Records a question against a READY dataset as PROCESSING and enqueues a QUERY
+// job. Answering it (LLM → SQL → execution → summary) happens asynchronously in
+// the worker, reusing the same queue/worker as ingestion.
 export class AskQuestionUseCase {
   constructor(
     private readonly datasets: DatasetQuery,
     private readonly questions: QuestionCommand,
+    private readonly jobQueue: JobQueue,
   ) {}
 
-  async exec(input: AskQuestionInput): Promise<Question> {
+  async exec(input: AskQuestionInput): Promise<AskQuestionResult> {
     const dataset = await this.datasets.findById(input.datasetId);
     if (!dataset) {
       throw new DatasetNotQueryableError('NOT_FOUND', 'No dataset exists with the given id.');
@@ -39,10 +49,28 @@ export class AskQuestionUseCase {
       throw new DatasetNotQueryableError('NOT_READY', 'The dataset is not ready to be queried yet.');
     }
 
-    return this.questions.create({
+    const question = await this.questions.create({
       id: randomUUID(),
       datasetId: input.datasetId,
       question: input.question,
     });
+
+    // Create + enqueue are not one transaction (that would couple two adapters).
+    // Compensate instead: if enqueue fails, mark the question FAILED so it is
+    // never left stuck in PROCESSING.
+    try {
+      const job = await this.jobQueue.enqueue({
+        type: JobType.Query,
+        datasetId: input.datasetId,
+        payload: { questionId: question.id },
+      });
+      return { question, job };
+    } catch (err) {
+      await this.questions.markFailed(question.id, 'Failed to enqueue query job.').catch((markErr) => {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to mark question ${question.id} FAILED after enqueue error`, markErr);
+      });
+      throw err;
+    }
   }
 }
