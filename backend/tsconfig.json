@@ -18,6 +18,6 @@
     "sourceMap": false,
     "typeRoots": ["./node_modules/@types", "./types"]
   },
-  "include": ["app.ts", "config/**/*.ts", "src/**/*.ts", "types/**/*.d.ts"],
+  "include": ["app.ts", "worker.ts", "config/**/*.ts", "src/**/*.ts", "types/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }

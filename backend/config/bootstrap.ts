@@ -1,19 +1,43 @@
+import { makeJobWorker } from '../src/features/dataset/adapters/factory';
+import type { JobWorker } from '../src/features/dataset/application/worker/job-worker';
 import { datasetSchemaFiles } from '../src/features/dataset/adapters/outbound/persistence/schema';
-import { getPool } from '../src/shared/persistence/postgres/postgres-client';
+import { closePool, getPool } from '../src/shared/persistence/postgres/postgres-client';
 import { initializeDatabase } from '../src/shared/persistence/postgres/initialize-database';
+import { onShutdown } from '../src/shared/runtime/graceful-shutdown';
 
-// Sails runs this once during `lift`, before the server accepts requests.
-// We connect to PostgreSQL and ensure the schema exists. Any failure is passed
-// to `done(err)` so lift aborts loudly rather than starting an unusable backend.
+// Sails runs this once during `lift`, before the server accepts requests. We
+// connect to PostgreSQL and ensure the schema exists. The background worker runs
+// in-process by default, but can be moved to its own process (see `worker.ts`) by
+// setting RUN_WORKER_IN_API=false and running `npm run worker` separately.
+
+let worker: JobWorker | undefined;
 
 export = {
   bootstrap: async function bootstrap(done: (err?: Error) => void): Promise<void> {
     try {
       const pool = getPool();
       await initializeDatabase(pool, datasetSchemaFiles);
+
+      if (runWorkerInApi()) {
+        worker = makeJobWorker();
+        worker.start();
+      } else {
+        // eslint-disable-next-line no-console
+        console.info('In-process job worker disabled (RUN_WORKER_IN_API=false); run `npm run worker` separately.');
+      }
+
+      onShutdown(async () => {
+        await worker?.stop();
+        await closePool();
+      });
       return done();
     } catch (err) {
       return done(err instanceof Error ? err : new Error(String(err)));
     }
   },
 };
+
+// Defaults to true so a single `npm start` runs a fully working backend.
+function runWorkerInApi(): boolean {
+  return process.env.RUN_WORKER_IN_API !== 'false';
+}

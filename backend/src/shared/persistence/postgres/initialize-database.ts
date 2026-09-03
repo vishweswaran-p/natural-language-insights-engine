@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { Pool } from 'pg';
 
 // Minimal, idempotent schema initialization. Executes the given SQL files in
@@ -15,6 +16,8 @@ export async function initializeDatabase(pool: Pool, schemaFiles: readonly strin
       await client.query(sql);
     }
     await client.query('COMMIT');
+    // eslint-disable-next-line no-console
+    console.info(`Database schema ready (applied: ${schemaFiles.map((f) => path.basename(f)).join(', ')}).`);
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

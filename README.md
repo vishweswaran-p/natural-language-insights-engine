@@ -33,6 +33,25 @@ npm run dev
 
 The API is now available at `http://localhost:1337`.
 
+## Background worker
+
+Dataset profiling runs as an asynchronous background job. **By default the worker
+runs in-process with the API**, so `npm run dev` gives you a fully working backend
+with nothing else to start.
+
+To run it as its own process instead (e.g. to isolate or scale profiling), start
+the API without the in-process worker and run the worker separately:
+
+```bash
+# Terminal 1 — API only (no in-process worker)
+RUN_WORKER_IN_API=false npm run dev
+
+# Terminal 2 — standalone worker
+npm run worker
+```
+
+Both share the same PostgreSQL job queue, so multiple workers can run safely.
+
 ## Try it
 
 ```bash

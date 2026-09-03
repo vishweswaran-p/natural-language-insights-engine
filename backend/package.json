@@ -9,7 +9,9 @@
     "build": "tsc && node scripts/copy-assets.mjs",
     "typecheck": "tsc --noEmit",
     "start": "node dist/app.js",
-    "dev": "npm run build && node dist/app.js"
+    "dev": "npm run build && node dist/app.js",
+    "worker": "node dist/worker.js",
+    "worker:dev": "npm run build && node dist/worker.js"
   },
   "dependencies": {
     "@duckdb/node-api": "^1.5.5-r.4",

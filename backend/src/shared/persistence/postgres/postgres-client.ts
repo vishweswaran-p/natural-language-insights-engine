@@ -16,3 +16,11 @@ export function getPool(): Pool {
   }
   return pool;
 }
+
+// Closes the shared pool (used during graceful shutdown).
+export async function closePool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = undefined;
+  }
+}
