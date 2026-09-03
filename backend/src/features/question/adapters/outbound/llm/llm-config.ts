@@ -27,7 +27,7 @@ const OPENAI_PRICING: Record<string, TokenPricing> = {
 };
 
 export function resolveLlmConfig(): LlmConfig {
-  const provider = (process.env.LLM_PROVIDER ?? 'openai') as LlmProviderName;
+  const provider = (process.env.LLM_PROVIDER ?? 'local') as LlmProviderName;
 
   if (provider === 'openai') {
     // A missing key is not fatal at boot — the app (and dataset ingestion) still

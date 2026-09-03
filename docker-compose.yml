@@ -1,5 +1,6 @@
-# Local development infrastructure. Only PostgreSQL runs in Docker at this stage
-# (the backend and frontend are run directly on the host).
+# Local development infrastructure: PostgreSQL and the local LLM (Ollama).
+# The backend and frontend are run directly on the host and reach these via the
+# published ports, matching the values in backend/.env.
 services:
   postgres:
     image: postgres:16
@@ -18,5 +19,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Local, OpenAI-compatible LLM. Used when LLM_PROVIDER=local (the default).
+  # Exposes an OpenAI-compatible API at http://localhost:11434/v1 — the same
+  # shape as OpenAI, which is why one adapter serves both.
+  # NOTE: on macOS/Windows, Docker has no GPU access, so inference is CPU-only.
+  # A smaller model (e.g. qwen2.5-coder:1.5b) is recommended here for speed.
+  # After `docker compose up -d`, pull the model once:
+  #   docker compose exec ollama ollama pull qwen2.5-coder:1.5b
+  ollama:
+    image: ollama/ollama:latest
+    container_name: insights-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - insights-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama --version || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   insights-pg-data:
+  insights-ollama-data:
