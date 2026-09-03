@@ -1,36 +1,60 @@
 # Natural Language Insights Engine
 
-Upload a CSV dataset and ask plain-English analytical questions, answered by
-executing safe, LLM-generated SQL against the uploaded data.
+Upload a CSV dataset and ask plain-English analytical questions. Questions are
+answered by an LLM that generates SQL, which is validated by a read-only
+guardrail and executed against the uploaded data with DuckDB; the resulting rows
+are then summarized back in natural language.
 
-> **Status:** CSV upload, asynchronous profiling (schema + statistics via DuckDB),
-> dataset listing, and a React UI for the dataset flow. Natural-language querying
-> is wired next (the Ask a Question screen is a shell for now).
+> **Status:** end-to-end and working. CSV upload → asynchronous profiling
+> (schema + statistics) → natural-language querying (LLM SQL → guardrail →
+> execution → summary) → a React UI covering datasets, asking questions, and a
+> question history.
+
+## Highlights
+
+- **Asynchronous by design.** Uploads and questions return `202 Accepted`
+  immediately and are processed by a background worker through a PostgreSQL job
+  queue (with retries and stale-job recovery). The same queue/worker serves both
+  ingestion and query jobs.
+- **Swappable LLM provider.** The application depends only on an `LlmProvider`
+  port; a single OpenAI-compatible adapter serves both hosted **OpenAI** and a
+  local **Ollama** model. Switching is an environment change — no code edits.
+- **Safe SQL execution.** LLM-generated SQL passes an application-level guardrail
+  that allows only a single read-only `SELECT`/`WITH` statement and blocks writes,
+  DDL, and file/system access before it ever reaches the query engine.
+- **Cost & observability.** Every question records its provider, model, token
+  counts, estimated cost, and latency.
+- **Ports & Adapters.** Business logic is framework-agnostic; PostgreSQL, DuckDB,
+  the filesystem, and the LLM are all adapters behind ports and can be swapped.
 
 ## Tech stack
 
-- **Backend:** Node.js, TypeScript, Sails.js, PostgreSQL
+- **Backend:** Node.js, TypeScript, Sails.js (thin HTTP runtime), PostgreSQL, DuckDB
 - **Frontend:** React, TypeScript, Vite (no extra runtime dependencies)
+- **Infrastructure:** Docker Compose (PostgreSQL + Ollama)
 
 ## Prerequisites
 
 - Node.js >= 20
-- Docker (for PostgreSQL)
+- Docker (for PostgreSQL, and Ollama when using the local LLM)
 
 ## Setup & run
 
-Run everything from one server: the backend serves the built frontend and the API
-from the same origin.
+The backend serves the built frontend and the API from the same origin, so the
+whole app runs from one server.
 
 ```bash
-# 1. Start PostgreSQL (docker compose, host port 5435)
+# 1. Start infrastructure — PostgreSQL (host port 5435) and Ollama (port 11434)
 npm run db:up
 
 # 2. Install dependencies (backend + frontend) and configure the backend
 npm run setup
 cp backend/.env.example backend/.env   # DATABASE_URL already matches the compose port
 
-# 3. Build the frontend + backend and start the server
+# 3. (Local LLM only) pull the model once — see "LLM configuration" below
+docker compose exec ollama ollama pull qwen2.5-coder:1.5b
+
+# 4. Build the frontend + backend and start the server
 npm start
 ```
 
@@ -48,57 +72,112 @@ npm run dev:backend    # API on http://localhost:1337
 npm run dev:frontend   # UI on http://localhost:5173 (hot reload)
 ```
 
+## LLM configuration
+
+The provider is chosen at boot from `backend/.env`. Switching is env-only.
+
+| Variable          | Purpose                                             | Default                       |
+| ----------------- | --------------------------------------------------- | ----------------------------- |
+| `LLM_PROVIDER`    | `openai` (hosted) or `local` (Ollama)               | `local`                       |
+| `OPENAI_API_KEY`  | Required when `LLM_PROVIDER=openai`                 | —                             |
+| `OPENAI_BASE_URL` | OpenAI-compatible base URL                          | `https://api.openai.com/v1`   |
+| `OPENAI_MODEL`    | Hosted model                                        | `gpt-4o-mini`                 |
+| `OLLAMA_BASE_URL` | Local Ollama OpenAI-compatible URL                  | `http://localhost:11434/v1`   |
+| `OLLAMA_MODEL`    | Local model                                         | `qwen2.5-coder:1.5b`          |
+
+**Local (default):** Ollama runs in Docker via `npm run db:up`. Pull a model once
+with `docker compose exec ollama ollama pull qwen2.5-coder:1.5b`. Under Docker on
+macOS/Windows inference is CPU-only, so a small model keeps responses fast; bump
+to `qwen2.5-coder:7b` for higher-quality SQL. No API key or cost.
+
+**Hosted:** set `LLM_PROVIDER=openai` and `OPENAI_API_KEY=...`, then restart the
+backend. The app boots without a key (dataset ingestion still works); only
+question answering requires it.
+
+## API reference
+
+All endpoints are under the same origin as the UI.
+
+| Method & path            | Description                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `GET /health`            | Liveness check.                                                                   |
+| `POST /api/datasets`     | Upload a CSV (`multipart/form-data`, field `file`). `202` with `{ dataset, job }`. |
+| `GET /api/datasets`      | List datasets (newest first).                                                     |
+| `GET /api/datasets/:id`  | Get one dataset; `metadata` holds the profiled schema + statistics once `READY`.  |
+| `GET /api/jobs/:id`      | Get a background job's status.                                                     |
+| `POST /api/questions`    | Ask a question (`{ datasetId, question }`). `202` with `{ question, job }`.        |
+| `GET /api/questions`     | List questions with their answers (newest first).                                 |
+| `GET /api/questions/:id` | Get one question; poll until `status` is terminal.                                |
+
+Datasets move `PROCESSING → READY | FAILED`. Questions move
+`PROCESSING → ANSWERED | REFUSED | FAILED` (`REFUSED` = unanswerable from the data
+or rejected by the guardrail; a normal outcome, not an error).
+
+### Try it
+
+```bash
+# Upload a CSV — returns 202 with the dataset (PROCESSING) and its job
+curl -F "file=@sales.csv;type=text/csv" http://localhost:1337/api/datasets
+
+# Poll the dataset until READY
+curl http://localhost:1337/api/datasets/<id>
+
+# Ask a question — returns 202 with the question (PROCESSING) and its job
+curl -X POST http://localhost:1337/api/questions \
+  -H 'Content-Type: application/json' \
+  -d '{"datasetId":"<id>","question":"What is the total revenue by region?"}'
+
+# Poll the question until ANSWERED / REFUSED / FAILED
+curl http://localhost:1337/api/questions/<questionId>
+```
+
+Uploads must be `.csv` and up to 200 MB.
+
 ## Background worker
 
-Dataset profiling runs as an asynchronous background job. **By default the worker
-runs in-process with the API**, so `npm run dev` gives you a fully working backend
-with nothing else to start.
+Ingestion and query answering run as asynchronous background jobs. **By default
+the worker runs in-process with the API**, so `npm start` gives a fully working
+backend with nothing else to start.
 
-To run it as its own process instead (e.g. to isolate or scale profiling), start
+To run it as its own process instead (e.g. to isolate or scale processing), start
 the API without the in-process worker and run the worker separately:
 
 ```bash
 # Terminal 1 — API only (no in-process worker)
-RUN_WORKER_IN_API=false npm run dev
+RUN_WORKER_IN_API=false npm run dev:backend
 
 # Terminal 2 — standalone worker
-npm run worker
+npm --prefix backend run worker
 ```
 
 Both share the same PostgreSQL job queue, so multiple workers can run safely.
 
-## Try it
-
-```bash
-# Health check
-curl http://localhost:1337/health
-
-# Upload a CSV — returns 202 with the new dataset (status PROCESSING) and a job
-curl -F "file=@sales.csv;type=text/csv" http://localhost:1337/api/datasets
-
-# Poll the ingestion job until it is COMPLETED (or FAILED)
-curl http://localhost:1337/api/jobs/<jobId>
-
-# Fetch the dataset — once READY, `metadata` holds the profiled schema + statistics
-curl http://localhost:1337/api/datasets/<id>
-
-# List all datasets
-curl http://localhost:1337/api/datasets
-```
-
-Uploads must be `.csv` and up to 200 MB. Uploading is asynchronous: a dataset
-starts as `PROCESSING` while the worker profiles it in the background, then moves
-to `READY` (or `FAILED`). Once the UI lands in a later phase, this is where you'll
-upload datasets and ask questions from the browser.
-
 ## How it's organized
 
-A monorepo with `backend/` and `frontend/`. The backend uses a lightweight Ports &
-Adapters (hexagonal) architecture: business logic lives in framework-agnostic
-use-cases, and Sails is only a thin HTTP layer. The frontend is a plain React SPA
-that talks to the API over `fetch`.
+A monorepo with `backend/` and `frontend/`.
 
-## Deferred to later phases
+The backend uses a lightweight **Ports & Adapters (hexagonal)** architecture,
+organized by feature (`dataset`, `question`, `health`):
 
-- Natural-language questions → LLM-generated SQL → query execution (UI shell exists)
-- Authentication, pagination, and automated tests
+```
+backend/src/
+  features/<feature>/
+    application/   # domain models, ports (interfaces), use-cases, workers — framework-agnostic
+    adapters/      # inbound (HTTP routes) + outbound (PostgreSQL, DuckDB, LLM, storage) + a factory (composition)
+  shared/          # cross-cutting HTTP, persistence, runtime helpers
+  composition/     # cross-feature composition roots (schema aggregation, background worker)
+```
+
+Business logic depends only on ports; Sails is just a thin HTTP layer, and
+concrete adapters are wired in per-feature factories. Imports use the `@app/*`
+path alias. The frontend is a plain React SPA (page-state navigation, a shared
+`fetch` client, and a polling hook for question results).
+
+## Deferred / next steps
+
+- **Automated tests** (guardrail, query engine, job processors are the priority).
+- **Parquet materialization at ingestion** — the query engine currently streams
+  the CSV per query via DuckDB `read_csv_auto`; writing a columnar copy on ingest
+  would speed up repeated queries and scale to larger files. The `QueryEngine`
+  port makes this a localized change.
+- Authentication and pagination on the list endpoints.
