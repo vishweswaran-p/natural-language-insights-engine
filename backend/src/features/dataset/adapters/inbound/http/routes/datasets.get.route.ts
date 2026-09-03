@@ -1,8 +1,7 @@
-import { ok } from '../../../../../../shared/http';
-import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
-import { makeGetDatasetUseCase } from '../../../factory';
-import { ApiError, toResponse } from '../api-error';
-import { toDatasetDto } from '../dataset-dto';
+import { ApiError, ok, toResponse } from '@app/shared/http';
+import type { Ctx, RouteDefinition } from '@app/shared/http';
+import { makeGetDatasetUseCase } from '@app/features/dataset/adapters/factory';
+import { toDatasetDto } from '@app/features/dataset/adapters/inbound/http/dataset-dto';
 
 // RFC 4122 UUID. We validate before querying so a malformed id is a clean 400
 // rather than a PostgreSQL "invalid input syntax for type uuid" error.

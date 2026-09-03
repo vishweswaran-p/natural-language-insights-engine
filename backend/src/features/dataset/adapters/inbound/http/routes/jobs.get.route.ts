@@ -1,8 +1,7 @@
-import { ok } from '../../../../../../shared/http';
-import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
-import { makeGetJobUseCase } from '../../../factory';
-import { ApiError, toResponse } from '../api-error';
-import { toJobDto } from '../job-dto';
+import { ApiError, ok, toResponse } from '@app/shared/http';
+import type { Ctx, RouteDefinition } from '@app/shared/http';
+import { makeGetJobUseCase } from '@app/features/dataset/adapters/factory';
+import { toJobDto } from '@app/features/dataset/adapters/inbound/http/job-dto';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

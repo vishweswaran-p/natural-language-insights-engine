@@ -1,6 +1,6 @@
 import { unlink } from 'node:fs/promises';
-import type { PlatformRequest } from '../../../../../shared/http';
-import { ApiError } from './api-error';
+import { ApiError } from '@app/shared/http';
+import type { PlatformRequest } from '@app/shared/http';
 
 // Maximum accepted upload size for this assignment.
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB

@@ -1,8 +1,7 @@
-import { ok } from '../../../../../../shared/http';
-import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
-import { makeListDatasetsUseCase } from '../../../factory';
-import { toResponse } from '../api-error';
-import { toDatasetDto } from '../dataset-dto';
+import { ok, toResponse } from '@app/shared/http';
+import type { Ctx, RouteDefinition } from '@app/shared/http';
+import { makeListDatasetsUseCase } from '@app/features/dataset/adapters/factory';
+import { toDatasetDto } from '@app/features/dataset/adapters/inbound/http/dataset-dto';
 
 // GET /api/datasets — list datasets, newest first, wrapped in { data: [...] }.
 const handler = (_ctx: Ctx) =>

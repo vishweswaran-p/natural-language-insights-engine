@@ -1,5 +1,5 @@
-import { error } from '../../../../../shared/http';
-import type { HttpResponse } from '../../../../../shared/http';
+import { error } from '@app/shared/http/response';
+import type { HttpResponse } from '@app/shared/http/types';
 
 // A client-facing error with an HTTP status and a stable machine-readable code.
 // Handlers throw these; `toResponse` maps them to structured error responses.

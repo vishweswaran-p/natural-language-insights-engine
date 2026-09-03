@@ -1,10 +1,9 @@
-import { withStatus } from '../../../../../../shared/http';
-import type { Ctx, RouteDefinition } from '../../../../../../shared/http';
-import { makeCreateDatasetUseCase } from '../../../factory';
-import { ApiError, toResponse } from '../api-error';
-import { toDatasetDto } from '../dataset-dto';
-import { toJobDto } from '../job-dto';
-import { cleanupTempFiles, receiveUpload, UploadedFile } from '../multipart';
+import { ApiError, toResponse, withStatus } from '@app/shared/http';
+import type { Ctx, RouteDefinition } from '@app/shared/http';
+import { makeCreateDatasetUseCase } from '@app/features/dataset/adapters/factory';
+import { toDatasetDto } from '@app/features/dataset/adapters/inbound/http/dataset-dto';
+import { toJobDto } from '@app/features/dataset/adapters/inbound/http/job-dto';
+import { cleanupTempFiles, receiveUpload, UploadedFile } from '@app/features/dataset/adapters/inbound/http/multipart';
 
 // Accepted MIME types for CSV. Browsers/platforms are inconsistent, so we accept
 // a pragmatic set and rely primarily on the .csv extension + non-zero size.
