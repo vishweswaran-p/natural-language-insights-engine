@@ -75,7 +75,8 @@ export type DatasetMetadata = {
 
   profiling: {
     generatedAt: string;
-    sampleSize: number;
+    // 'full' = statistics computed over every row (exact). A future 'sampled'
+    // mode could trade accuracy for speed on very large files.
     statisticsMode: 'full' | 'sampled';
   };
 };

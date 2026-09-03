@@ -12,6 +12,7 @@
     "dev": "npm run build && node dist/app.js"
   },
   "dependencies": {
+    "@duckdb/node-api": "^1.5.5-r.4",
     "dotenv": "^16.4.0",
     "pg": "^8.13.0",
     "sails": "^1.5.14"
