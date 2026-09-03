@@ -62,6 +62,12 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
     messages: ChatMessage[],
     jsonMode: boolean,
   ): Promise<{ content: string; usage: ChatCompletionResponse['usage']; latencyMs: number }> {
+    // Checked here (not at boot) so the app starts without a key; only
+    // question-answering fails, with a clear message, when it is missing.
+    if (!this.config.apiKey) {
+      throw new Error('LLM API key is not configured. Set OPENAI_API_KEY (or use LLM_PROVIDER=local for Ollama).');
+    }
+
     const body = {
       model: this.config.model,
       messages,

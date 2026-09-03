@@ -30,15 +30,14 @@ export function resolveLlmConfig(): LlmConfig {
   const provider = (process.env.LLM_PROVIDER ?? 'openai') as LlmProviderName;
 
   if (provider === 'openai') {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY is not set (required when LLM_PROVIDER=openai).');
-    }
+    // A missing key is not fatal at boot — the app (and dataset ingestion) still
+    // start. The adapter checks for it at call time so only question-answering
+    // fails, with a clear message, when the key is absent.
     const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
     return {
       provider,
       baseUrl: process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-      apiKey,
+      apiKey: process.env.OPENAI_API_KEY ?? '',
       model,
       pricing: OPENAI_PRICING[model] ?? null,
     };
