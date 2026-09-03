@@ -597,7 +597,33 @@ textarea {
 
 .usage-meta {
   margin: 0;
-  font-size: 0.78rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usage-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.usage-label {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.usage-value {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 

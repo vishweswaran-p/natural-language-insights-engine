@@ -59,13 +59,36 @@ export function AnswerDetails({ question }: { question: Question }) {
 }
 
 function UsageMeta({ usage }: { usage: LlmUsage }) {
-  const parts: string[] = [`${usage.provider}:${usage.model}`];
-  if (usage.totalTokens !== null) parts.push(`${usage.totalTokens.toLocaleString('en-US')} tokens`);
-  if (usage.latencyMs !== null) parts.push(`${usage.latencyMs.toLocaleString('en-US')} ms`);
-  if (usage.estimatedCostUsd !== null && usage.estimatedCostUsd > 0) {
-    parts.push(`$${usage.estimatedCostUsd.toFixed(4)}`);
-  }
-  return <p className="muted usage-meta">{parts.join(' · ')}</p>;
+  return (
+    <dl className="usage-meta">
+      <UsageItem label="Model" value={`${usage.provider}:${usage.model}`} />
+      <UsageItem label="Input" value={formatTokens(usage.promptTokens)} />
+      <UsageItem label="Output" value={formatTokens(usage.completionTokens)} />
+      <UsageItem label="Total" value={formatTokens(usage.totalTokens)} />
+      <UsageItem label="Cost" value={formatCost(usage.estimatedCostUsd)} />
+      {usage.latencyMs !== null && <UsageItem label="Latency" value={`${usage.latencyMs.toLocaleString('en-US')} ms`} />}
+    </dl>
+  );
+}
+
+function UsageItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="usage-item">
+      <dt className="usage-label">{label}</dt>
+      <dd className="usage-value">{value}</dd>
+    </div>
+  );
+}
+
+function formatTokens(tokens: number | null): string {
+  return tokens === null ? '—' : tokens.toLocaleString('en-US');
+}
+
+function formatCost(cost: number | null): string {
+  if (cost === null) return '—';
+  if (cost === 0) return '$0.00';
+  // Per-query costs are tiny; show more precision for sub-cent amounts.
+  return `$${cost.toFixed(cost < 0.01 ? 6 : 4)}`;
 }
 
 function renderCell(value: Primitive): string {
