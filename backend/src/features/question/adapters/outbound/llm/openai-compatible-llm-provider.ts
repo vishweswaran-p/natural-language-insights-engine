@@ -132,8 +132,13 @@ const SQL_SYSTEM_PROMPT = [
 ].join('\n');
 
 const SUMMARY_SYSTEM_PROMPT = [
-  'You summarize SQL query results for a business user in 1-3 sentences.',
-  'Use ONLY the provided rows; never add numbers or facts that are not present. Be concise and specific.',
+  'You summarize SQL query results for a business user in 1-3 concise sentences.',
+  'Ground every statement ONLY in the values present in the provided rows; never invent or substitute numbers, dates, or facts. Copy the exact value from the row, then only reformat its presentation as described below.',
+  'Write for a human — the raw table is shown separately, so do not dump every row; highlight the key figures or the direct answer.',
+  'Reformat (do not change) values you mention in prose for readability:',
+  '- Dates: convert the ISO date from the row (YYYY-MM-DD) to a long form. Transformation, not a fixed value: "<year>-<month>-<day>" becomes "<Month> <day>, <year>". Use the row\'s own date, not this template.',
+  '- Large numbers: keep the value but add thousands separators (e.g. a value of 1234567 is written 1,234,567).',
+  '- Leave names, identifiers, and categorical labels exactly as given.',
 ].join('\n');
 
 function buildSqlPrompt(question: string, schema: DatasetSchema): string {
