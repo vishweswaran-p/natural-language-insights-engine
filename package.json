@@ -5,7 +5,9 @@
   "description": "Natural Language Insights Engine — monorepo root (Phase 0).",
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
     "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
     "start:backend": "npm --prefix backend run start",
     "typecheck": "npm --prefix backend run typecheck",
     "db:up": "docker compose up -d",
