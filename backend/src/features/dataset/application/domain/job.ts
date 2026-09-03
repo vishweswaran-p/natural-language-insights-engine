@@ -1,10 +1,11 @@
 // Background job domain model. Framework/persistence agnostic.
 //
-// Only INGESTION exists today; the shape leaves room for QUERY (etc.) later
-// without changing the queue/worker contracts.
+// INGESTION profiles an uploaded dataset; QUERY answers a natural-language
+// question against one. Both flow through the same queue/worker contracts.
 
 export const JobType = {
   Ingestion: 'INGESTION',
+  Query: 'QUERY',
 } as const;
 
 export type JobType = (typeof JobType)[keyof typeof JobType];

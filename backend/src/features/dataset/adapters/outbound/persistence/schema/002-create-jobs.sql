@@ -1,9 +1,9 @@
--- Background job queue table (currently only INGESTION jobs).
+-- Background job queue table (INGESTION profiles a dataset; QUERY answers a question).
 -- Idempotent: safe to run on every backend startup.
 
 CREATE TABLE IF NOT EXISTS jobs (
   id            UUID PRIMARY KEY,
-  type          TEXT NOT NULL CHECK (type IN ('INGESTION')),
+  type          TEXT NOT NULL CHECK (type IN ('INGESTION', 'QUERY')),
   status        TEXT NOT NULL CHECK (status IN ('QUEUED', 'RUNNING', 'COMPLETED', 'FAILED')),
   dataset_id    UUID NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
   payload       JSONB,
