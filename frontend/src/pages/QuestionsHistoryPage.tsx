@@ -81,32 +81,46 @@ export function QuestionsHistoryPage({ onNavigate }: Props) {
 }
 
 function QuestionCard({ question, datasetName }: { question: Question; datasetName?: string }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <article className="panel question-card">
-      <div className="question-card-head">
+      <button
+        type="button"
+        className="question-card-head"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
         <div className="question-card-heading">
           <p className="question-text">“{question.question}”</p>
           <p className="muted question-meta">
             {datasetName ?? 'Unknown dataset'} · {formatDate(question.createdAt)}
           </p>
         </div>
-        <QuestionStatusBadge status={question.status} />
-      </div>
+        <div className="question-card-head-right">
+          <QuestionStatusBadge status={question.status} />
+          <span className={`chevron${open ? ' chevron-open' : ''}`} aria-hidden="true" />
+        </div>
+      </button>
 
-      {question.status === 'ANSWERED' && question.answer ? (
-        <AnswerDetails question={question} />
-      ) : question.status === 'REFUSED' ? (
-        <div className="banner banner-info">
-          {question.refusalReason ?? 'This question cannot be answered from the dataset.'}
-        </div>
-      ) : question.status === 'FAILED' ? (
-        <div className="banner banner-error" role="alert">
-          {question.errorMessage ?? 'Something went wrong while answering this question.'}
-        </div>
-      ) : (
-        <div className="answer-loading">
-          <span className="spinner spinner-lg" aria-hidden="true" />
-          <span>Still answering… refresh to check again.</span>
+      {open && (
+        <div className="question-card-body">
+          {question.status === 'ANSWERED' && question.answer ? (
+            <AnswerDetails question={question} />
+          ) : question.status === 'REFUSED' ? (
+            <div className="banner banner-info">
+              {question.refusalReason ?? 'This question cannot be answered from the dataset.'}
+            </div>
+          ) : question.status === 'FAILED' ? (
+            <div className="banner banner-error" role="alert">
+              {question.errorMessage ?? 'Something went wrong while answering this question.'}
+            </div>
+          ) : (
+            <div className="answer-loading">
+              <span className="spinner spinner-lg" aria-hidden="true" />
+              <span>Still answering… refresh to check again.</span>
+            </div>
+          )}
         </div>
       )}
     </article>
