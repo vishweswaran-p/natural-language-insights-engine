@@ -25,6 +25,13 @@ export function AppHeader({ page, onNavigate }: Props) {
           >
             Ask a Question
           </button>
+          <button
+            type="button"
+            className={`nav-link${page === 'history' ? ' active' : ''}`}
+            onClick={() => onNavigate('history')}
+          >
+            Questions
+          </button>
         </nav>
       </div>
     </header>

@@ -327,6 +327,12 @@ h1 {
   border-color: #c7d7fe;
 }
 
+.badge-refused {
+  color: #92400e;
+  background: #fffaeb;
+  border-color: #fde68a;
+}
+
 .badge-dot {
   width: 7px;
   height: 7px;
@@ -558,4 +564,40 @@ textarea {
   margin: 0;
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- question history ---- */
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.question-card-heading {
+  min-width: 0;
+}
+
+.question-text {
+  margin: 0;
+  font-weight: 500;
+  font-style: italic;
+  word-break: break-word;
+}
+
+.question-meta {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
 }
