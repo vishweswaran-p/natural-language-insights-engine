@@ -18,11 +18,12 @@ function toSailsHandler(handler: RouteDefinition['handler']): SailsHandler {
       }
       return res.status(status).json(body);
     } catch (err) {
-      // Single error boundary. Typed error → HTTP status mapping can be added
-      // here when use-cases start throwing domain errors.
+      // Single error boundary for unexpected failures. Known client errors are
+      // returned by handlers themselves; anything reaching here is a 500. Internal
+      // details are logged server-side and never sent to the client.
       // eslint-disable-next-line no-console
       console.error('Unhandled error in route handler', err);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error.' } });
     }
   };
 }
