@@ -48,7 +48,7 @@ export function resolveLlmConfig(): LlmConfig {
       provider,
       baseUrl: process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434/v1',
       apiKey: 'ollama', // Ollama ignores the key but the OpenAI client shape expects one.
-      model: process.env.OLLAMA_MODEL ?? 'qwen2.5-coder:7b',
+      model: process.env.OLLAMA_MODEL ?? 'qwen2.5-coder:1.5b',
       pricing: { promptPer1k: 0, completionPer1k: 0 }, // self-hosted: no per-token cost
     };
   }
