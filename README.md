@@ -4,7 +4,7 @@ Upload a CSV and ask analytical questions in plain English. The app infers schem
 from the file, generates SQL via an LLM, validates it with a read-only guardrail,
 executes it with DuckDB, and returns a summarized answer.
 
-For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+For system design, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. For HTTP endpoints, see **[docs/API.md](docs/API.md)**.
 
 ## Prerequisites
 
@@ -30,6 +30,8 @@ For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.
 
 ![Ask a question and view the answer](docs/demo/ask-question.gif)
 
+
+
 ## How to run it
 
 ### Quick start (Docker)
@@ -41,6 +43,8 @@ docker compose up --build
 Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local LLM model is downloaded.
 
 Stop: `docker compose down`
+
+
 
 ### Development (host)
 
@@ -87,24 +91,17 @@ Use **LLM** in the header to switch between local Ollama and OpenAI at runtime (
 3. Select the dataset, type a question (e.g. *What are the top 10 products by revenue?*), and submit
 4. Wait until the answer appears (the UI polls automatically)
 
-
-
 ### API
 
+See **[docs/API.md](docs/API.md)** for the full reference. Minimal flow:
+
 ```bash
-# 1. Upload a CSV — returns 202 with dataset id
 curl -F "file=@data.csv;type=text/csv" http://localhost:1337/api/datasets
-
-# 2. Poll until status is READY
-curl http://localhost:1337/api/datasets/<dataset-id>
-
-# 3. Ask a question — returns 202 with question id
+curl http://localhost:1337/api/datasets/<dataset-id>                              # until READY
 curl -X POST http://localhost:1337/api/questions \
   -H 'Content-Type: application/json' \
   -d '{"datasetId":"<dataset-id>","question":"What is the total revenue by country?"}'
-
-# 4. Poll until status is ANSWERED, REFUSED, or FAILED
-curl http://localhost:1337/api/questions/<question-id>
+curl http://localhost:1337/api/questions/<question-id>                            # until terminal
 ```
 
 `REFUSED` means the question cannot be answered from the data or was blocked by the
