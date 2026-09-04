@@ -11,6 +11,7 @@ export function AnswerDetails({ question }: { question: Question }) {
   const answer = question.answer!;
   const rows = answer.rows.slice(0, DISPLAY_ROW_LIMIT);
   const truncated = answer.rowCount > rows.length;
+  const numericColumns = answer.columns.map((_, colIndex) => isNumericColumn(rows, colIndex));
 
   return (
     <div className="answer-body">
@@ -21,8 +22,10 @@ export function AnswerDetails({ question }: { question: Question }) {
           <table className="table">
             <thead>
               <tr>
-                {answer.columns.map((col) => (
-                  <th key={col}>{col}</th>
+                {answer.columns.map((col, colIndex) => (
+                  <th key={col} className={numericColumns[colIndex] ? 'num' : undefined}>
+                    {col}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -30,7 +33,7 @@ export function AnswerDetails({ question }: { question: Question }) {
               {rows.map((row, r) => (
                 <tr key={r}>
                   {row.map((value, c) => (
-                    <td key={c} className={typeof value === 'number' ? 'num' : undefined}>
+                    <td key={c} className={numericColumns[c] ? 'num' : undefined}>
                       {renderCell(value)}
                     </td>
                   ))}
@@ -89,6 +92,14 @@ function formatCost(cost: number | null): string {
   if (cost === 0) return '$0.00';
   // Per-query costs are tiny; show more precision for sub-cent amounts.
   return `$${cost.toFixed(cost < 0.01 ? 6 : 4)}`;
+}
+
+function isNumericColumn(rows: Primitive[][], colIndex: number): boolean {
+  for (const row of rows) {
+    const value = row[colIndex];
+    if (value !== null) return typeof value === 'number';
+  }
+  return false;
 }
 
 function renderCell(value: Primitive): string {

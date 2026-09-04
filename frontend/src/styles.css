@@ -553,6 +553,12 @@ textarea {
 .answer-body .table-wrap {
   border: 1px solid var(--border);
   border-radius: 6px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.answer-body .table {
+  width: auto;
 }
 
 .answer-rowcount {
