@@ -24,6 +24,9 @@ that allows only a single read-only `SELECT`/`WITH` statement and blocks writes,
 DDL, and file/system access before it ever reaches the query engine.
 - **Cost & observability.** Every question records its provider, model, token
 counts, estimated cost, and latency.
+- **Large-file friendly storage.** During ingestion DuckDB profiles the CSV and
+materializes a columnar Parquet copy (`data.parquet`). Queries prefer Parquet for
+faster repeated scans; datasets ingested before this change fall back to CSV.
 - **Ports & Adapters.** Business logic is framework-agnostic; PostgreSQL, DuckDB,
 the filesystem, and the LLM are all adapters behind ports and can be swapped.
 
@@ -208,10 +211,7 @@ path alias. The frontend is a plain React SPA (page-state navigation, a shared
 
 ## Deferred / next steps
 
-- **Automated tests** (guardrail, query engine, job processors are the priority).
-- **Parquet materialization at ingestion** — the query engine currently streams
-the CSV per query via DuckDB `read_csv_auto`; writing a columnar copy on ingest
-would speed up repeated queries and scale to larger files. The `QueryEngine`
-port makes this a localized change.
+- **Automated tests** (query engine, job processors are the priority beyond the
+existing SQL guardrail suite).
 - Authentication and pagination on the list endpoints.
 

@@ -1,4 +1,5 @@
 import { type Job, JobType } from '@app/features/dataset/application/domain/job';
+import { parquetPathFor } from '@app/features/dataset/application/dataset-file-layout';
 import type { DatasetCommand } from '@app/features/dataset/application/ports/dataset.command';
 import type { DatasetProfiler } from '@app/features/dataset/application/ports/dataset-profiler';
 import type { DatasetQuery } from '@app/features/dataset/application/ports/dataset.query';
@@ -40,7 +41,11 @@ export class IngestionJobProcessor implements JobProcessor {
 
     let metadata;
     try {
-      metadata = await this.profiler.profile({ storagePath: dataset.storagePath, filename: dataset.filename });
+      metadata = await this.profiler.profile({
+        storagePath: dataset.storagePath,
+        filename: dataset.filename,
+        parquetOutputPath: parquetPathFor(dataset.storagePath),
+      });
     } catch (err) {
       log.error('Profiling failed', {
         jobId: job.id,
@@ -61,6 +66,7 @@ export class IngestionJobProcessor implements JobProcessor {
       rowCount: metadata.dataset.rowCount,
       columnCount: metadata.dataset.columnCount,
       warningCount: metadata.warnings.length,
+      queryFormat: metadata.profiling.queryFormat,
       durationMs: Date.now() - startedAt,
     });
   }

@@ -78,5 +78,7 @@ export type DatasetMetadata = {
     // 'full' = statistics computed over every row (exact). A future 'sampled'
     // mode could trade accuracy for speed on very large files.
     statisticsMode: 'full' | 'sampled';
+    // Preferred on-disk format for query execution after ingestion completes.
+    queryFormat?: 'parquet' | 'csv';
   };
 };

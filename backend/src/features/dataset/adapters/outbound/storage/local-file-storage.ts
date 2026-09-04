@@ -1,5 +1,6 @@
 import { copyFile, mkdir, rename, rm, unlink } from 'node:fs/promises';
 import path from 'node:path';
+import { DATASET_CSV_FILENAME } from '@app/features/dataset/application/dataset-file-layout';
 import type { FileStorage, StoreFileInput, StoredFile } from '@app/features/dataset/application/ports/file-storage';
 
 // Outbound adapter: stores uploaded files on the local filesystem under a
@@ -9,7 +10,7 @@ import type { FileStorage, StoreFileInput, StoredFile } from '@app/features/data
 // dataset UUID and a fixed filename. The user-provided filename is never used to
 // build a path, so path traversal is not possible.
 
-const STORED_FILENAME = 'original.csv';
+const STORED_FILENAME = DATASET_CSV_FILENAME;
 
 export class LocalFileStorage implements FileStorage {
   private readonly root: string;

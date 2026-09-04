@@ -26,7 +26,7 @@ const HIGH_CARDINALITY_MIN_ROWS = 100;
 type ColumnInfo = { name: string; duckType: string; type: ColumnType };
 
 export class DuckDbDatasetProfiler implements DatasetProfiler {
-  async profile({ storagePath, filename }: ProfileDatasetInput): Promise<DatasetMetadata> {
+  async profile({ storagePath, filename, parquetOutputPath }: ProfileDatasetInput): Promise<DatasetMetadata> {
     const instance = await DuckDBInstance.create(':memory:');
     const connection = await instance.connect();
     try {
@@ -83,6 +83,13 @@ export class DuckDbDatasetProfiler implements DatasetProfiler {
         });
       }
 
+      if (parquetOutputPath) {
+        await connection.run(
+          `COPY (SELECT * FROM dataset) TO ${quoteLiteral(parquetOutputPath)} (FORMAT PARQUET)`,
+        );
+        log.info('Parquet materialized', { filename, parquetOutputPath, rowCount });
+      }
+
       return {
         version: '1',
         dataset: { filename, rowCount, columnCount: columns.length },
@@ -91,6 +98,7 @@ export class DuckDbDatasetProfiler implements DatasetProfiler {
         profiling: {
           generatedAt: new Date().toISOString(),
           statisticsMode: 'full',
+          queryFormat: parquetOutputPath ? 'parquet' : 'csv',
         },
       };
     } finally {

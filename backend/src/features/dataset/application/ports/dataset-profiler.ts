@@ -9,6 +9,8 @@ export interface ProfileDatasetInput {
   storagePath: string;
   // Original filename, recorded in the resulting metadata.
   filename: string;
+  // When set, a columnar Parquet copy is written alongside the CSV during profiling.
+  parquetOutputPath?: string;
 }
 
 export interface DatasetProfiler {
