@@ -6,6 +6,16 @@ executes it with DuckDB, and returns a summarized answer.
 
 For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
+## Demo
+
+**Upload and profile a CSV** (UCI Online Retail → Ready):
+
+![Upload and profile a CSV dataset](docs/demo/create-dataset.gif)
+
+**Ask a question and view the answer** (natural language → SQL → summary):
+
+![Ask a question and view the answer](docs/demo/ask-question.gif)
+
 ## How to run it
 
 ### Quick start (Docker)
@@ -14,7 +24,7 @@ For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.
 npm run docker:up
 ```
 
-Open **http://localhost:1337**. First boot may take a few minutes while the local
+Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local
 LLM model is downloaded.
 
 Stop: `npm run docker:down`
@@ -38,12 +48,14 @@ Stop infra: `npm run db:down`
 
 **Host dev:** use `backend/.env` (see `backend/.env.example`).
 
-| Variable | Purpose | Default |
-| -------- | ------- | ------- |
-| `LLM_PROVIDER` | `local` (Ollama) or `openai` | `local` |
-| `OPENAI_API_KEY` | Required when `LLM_PROVIDER=openai` | — |
-| `OPENAI_MODEL` | Hosted model | `gpt-4o-mini` |
-| `OLLAMA_MODEL` | Local model | `qwen2.5-coder:1.5b` |
+
+| Variable         | Purpose                             | Default              |
+| ---------------- | ----------------------------------- | -------------------- |
+| `LLM_PROVIDER`   | `local` (Ollama) or `openai`        | `local`              |
+| `OPENAI_API_KEY` | Required when `LLM_PROVIDER=openai` | —                    |
+| `OPENAI_MODEL`   | Hosted model                        | `gpt-4o-mini`        |
+| `OLLAMA_MODEL`   | Local model                         | `qwen2.5-coder:1.5b` |
+
 
 Dataset upload works without an API key; answering questions requires a configured LLM.
 
@@ -51,7 +63,7 @@ Dataset upload works without an API key; answering questions requires a configur
 
 ### UI
 
-1. Open **http://localhost:1337**
+1. Open **[http://localhost:1337](http://localhost:1337)**
 2. Upload a `.csv` file (up to 200 MB) and wait until the dataset status is **READY**
 3. Select the dataset, type a question (e.g. *What are the top 10 products by revenue?*), and submit
 4. Wait until the answer appears (the UI polls automatically)
