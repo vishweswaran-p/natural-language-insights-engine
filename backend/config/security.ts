@@ -1,6 +1,5 @@
-// Minimal security config. CSRF is disabled for now (there is no browser
-// session/auth yet). CORS will be configured under `security.cors` in a later
-// phase, when the frontend starts calling the API.
+// CSRF is disabled (no session auth). The UI is same-origin in production and
+// proxied in dev, so CORS is not configured.
 
 export = {
   csrf: false,

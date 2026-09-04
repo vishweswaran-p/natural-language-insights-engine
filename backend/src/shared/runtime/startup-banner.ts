@@ -13,8 +13,7 @@ export interface StartupBannerOptions {
 
 const BOX_WIDTH = 66;
 
-// Loud, interview-friendly startup banner. Logged as a single multiline info entry
-// so the ASCII box renders cleanly (one timestamp prefix for the whole block).
+// Logged as a single multiline info entry so the ASCII box renders cleanly.
 export function logStartupBanner(log: Logger, options: StartupBannerOptions): void {
   const host = options.host ?? 'localhost';
   const base = `http://${host}:${options.port}`;

@@ -11,10 +11,7 @@ import { logWorkerStartupBanner } from '@app/shared/runtime/startup-banner';
 
 const log = getLogger('worker');
 
-// Standalone job worker: the same worker the API can run in-process, but as its
-// own OS process. It shares no port with the API — coordination happens purely
-// through the PostgreSQL job queue, so any number of these can run alongside the
-// API (and each other) safely.
+// Standalone background worker process (coordinates via the Postgres job queue).
 async function main(): Promise<void> {
   log.info('Starting standalone worker', { environment: process.env.NODE_ENV ?? 'development' });
 

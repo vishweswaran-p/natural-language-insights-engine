@@ -12,17 +12,13 @@ import { PgQuestionCommand } from '@app/features/question/adapters/outbound/pers
 import { PgQuestionQuery } from '@app/features/question/adapters/outbound/persistence/queries/pg-question-query';
 import { DuckDbQueryEngine } from '@app/features/question/adapters/outbound/query/duckdb-query-engine';
 
-// Composition root for the question feature. Concrete adapters are built here only.
+// Concrete adapters for the question feature.
 
 const questionCommand = (): PgQuestionCommand => new PgQuestionCommand(getPool());
 const questionQuery = (): PgQuestionQuery => new PgQuestionQuery(getPool());
 
-// The active LLM adapter, chosen from the environment. Swapping providers is an
-// env change; nothing else in the feature is aware of OpenAI/Ollama.
-export const makeLlmProvider = (): LlmProvider => new OpenAiCompatibleLlmProvider(resolveLlmConfig());
-
-// Executes generated SQL against the stored dataset.
-export const makeQueryEngine = (): QueryEngine => new DuckDbQueryEngine();
+const makeLlmProvider = (): LlmProvider => new OpenAiCompatibleLlmProvider(resolveLlmConfig());
+const makeQueryEngine = (): QueryEngine => new DuckDbQueryEngine();
 
 export function makeAskQuestionUseCase(): AskQuestionUseCase {
   return new AskQuestionUseCase(makeDatasetQuery(), questionCommand(), makeJobQueue());
@@ -36,8 +32,6 @@ export function makeGetQuestionUseCase(): GetQuestionUseCase {
   return new GetQuestionUseCase(questionQuery());
 }
 
-// The worker-side processor for QUERY jobs, assembled from this feature's ports.
-// Registered onto the shared worker in the background composition root.
 export function makeQueryJobProcessor(): QueryJobProcessor {
   return new QueryJobProcessor(questionQuery(), questionCommand(), makeDatasetQuery(), makeLlmProvider(), makeQueryEngine());
 }

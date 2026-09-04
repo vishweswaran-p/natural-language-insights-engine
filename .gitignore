@@ -12,7 +12,7 @@ build/
 .env.*
 !.env.example
 
-# Uploaded datasets (introduced in a later phase)
+# Uploaded datasets
 uploads/
 data/uploads/
 

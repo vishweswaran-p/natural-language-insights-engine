@@ -1,8 +1,7 @@
 // Minimal ambient declaration for Sails.
 //
 // The community `@types/sails` packages are stale and pull in a large,
-// inaccurate surface. Phase 0 only needs to lift the app and log, so we
-// declare just that. Expand this as real usage grows.
+// inaccurate surface. Declare only what this app uses.
 
 declare module 'sails' {
   interface SailsLog {

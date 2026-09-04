@@ -1,8 +1,7 @@
 import { error } from '@app/shared/http/response';
 import type { HttpResponse } from '@app/shared/http/types';
 
-// A client-facing error with an HTTP status and a stable machine-readable code.
-// Handlers throw these; `toResponse` maps them to structured error responses.
+// Client-facing error with HTTP status and stable code.
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -13,8 +12,7 @@ export class ApiError extends Error {
   }
 }
 
-// Wrap a handler body so thrown ApiErrors become structured responses and any
-// other error propagates to the shared bridge (→ 500 INTERNAL_ERROR).
+// Map thrown ApiErrors to responses; rethrow everything else to the HTTP bridge.
 export async function toResponse(run: () => Promise<HttpResponse>): Promise<HttpResponse> {
   try {
     return await run();

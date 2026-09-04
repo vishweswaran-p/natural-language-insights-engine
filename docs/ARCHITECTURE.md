@@ -82,6 +82,8 @@ SQL guardrail, and **Vitest** unit tests for the SQL guardrail (deterministic CI
 
 ## Key decisions (and alternatives rejected)
 
+
+
 ### 1. PostgreSQL job queue (not Redis / BullMQ / SQS)
 
 **Chosen:** Jobs table with `FOR UPDATE SKIP LOCKED` for claiming.
@@ -89,7 +91,7 @@ SQL guardrail, and **Vitest** unit tests for the SQL guardrail (deterministic CI
 **Why:** One dependency for persistence and queuing; transactional enqueue with
 dataset/question rows; multiple workers without extra infra.
 
-**Rejected:** In-memory queue (lost on restart), Redis/BullMQ/SQS (more moving parts for a local take-home).
+**Rejected:** In-memory queue (lost on restart), Redis/BullMQ/SQS (extra infra for a local demo).
 
 ### 2. DuckDB for analytics (not loading CSV into PostgreSQL)
 

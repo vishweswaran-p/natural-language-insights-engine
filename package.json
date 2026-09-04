@@ -2,7 +2,7 @@
   "name": "natural-language-insights-engine",
   "version": "0.0.0",
   "private": true,
-  "description": "Natural Language Insights Engine — monorepo root (Phase 0).",
+  "description": "Natural Language Insights Engine — monorepo root.",
   "scripts": {
     "setup": "npm --prefix backend install && npm --prefix frontend install",
     "dev:backend": "npm --prefix backend run dev",
@@ -12,7 +12,7 @@
     "build": "npm run build:frontend && npm run build:backend",
     "start": "npm run build && npm run start:backend",
     "start:backend": "npm --prefix backend run start",
-    "typecheck": "npm --prefix backend run typecheck",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
     "test": "npm --prefix backend run test",
     "docker:up": "docker compose --profile full up --build",
     "docker:down": "docker compose --profile full down",

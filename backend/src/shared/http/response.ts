@@ -4,10 +4,6 @@ export function ok<T>(body: T, headers?: Headers): HttpResponse<T> {
   return { status: 200, body, headers };
 }
 
-export function noContent(headers?: Headers): HttpResponse<undefined> {
-  return { status: 204, headers };
-}
-
 export function withStatus<T>(status: number, body: T, headers?: Headers): HttpResponse<T> {
   return { status, body, headers };
 }

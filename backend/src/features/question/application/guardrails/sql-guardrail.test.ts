@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GuardrailError, validateReadOnlySql } from './sql-guardrail';
 
-// The guardrail is the last line of defense before LLM-generated SQL hits DuckDB.
-// These tests cover the rules we rely on in production — focused and easy to
-// explain in a review.
-
 describe('validateReadOnlySql', () => {
   it('allows a simple SELECT and strips a trailing semicolon', () => {
     expect(validateReadOnlySql('SELECT * FROM dataset;')).toBe('SELECT * FROM dataset');

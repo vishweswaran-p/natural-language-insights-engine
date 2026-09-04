@@ -2,8 +2,7 @@ import type { Dataset } from '@app/features/dataset/application/domain/dataset';
 import type { DatasetMetadata } from '@app/features/dataset/application/domain/dataset-metadata';
 import type { DatasetStatus } from '@app/features/dataset/application/domain/dataset-status';
 
-// Public API representation of a dataset. Deliberately excludes `storagePath`,
-// which is an internal implementation detail.
+// Public API representation of a dataset (excludes internal storagePath).
 export interface DatasetDto {
   id: string;
   filename: string;

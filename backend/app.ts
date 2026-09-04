@@ -8,14 +8,7 @@ import { logStartupBanner } from '@app/shared/runtime/startup-banner';
 
 const log = getLogger('server');
 
-// Entry point / composition of the HTTP runtime.
-//
-// Sails is used purely as a thin HTTP + runtime framework. All application and
-// domain logic lives under `src/` and is framework-agnostic.
-//
-// This file is compiled to `dist/app.js`; `__dirname` therefore points at the
-// compiled `dist/` directory, which is what we hand to Sails as its `appPath`
-// so it loads the compiled `config/` and `api/controllers/`.
+// Entry point. Sails is used as a thin HTTP runtime; application code lives under src/.
 
 const port = Number(process.env.PORT) || 1337;
 const environment = process.env.NODE_ENV || 'development';
@@ -25,8 +18,7 @@ sails.lift(
     appPath: __dirname,
     port,
     environment,
-    // Keep Sails lean: this is an API server, not a full-stack MVC app. Hooks
-    // for views/assets/ORM/sockets are disabled until a later phase needs them.
+    // API server only — disable unused Sails hooks (views, ORM, sockets, etc.).
     hooks: {
       grunt: false,
       views: false,

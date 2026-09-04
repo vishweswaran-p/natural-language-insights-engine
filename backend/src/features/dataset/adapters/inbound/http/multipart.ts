@@ -5,8 +5,7 @@ import { getLogger } from '@app/shared/logging';
 
 const log = getLogger('upload');
 
-// Maximum accepted upload size for this assignment.
-export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
 
 // A single file received by Sails' built-in multipart parser (skipper). Streamed
 // to a temporary location on disk — never buffered fully in memory.

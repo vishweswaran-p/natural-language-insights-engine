@@ -5,10 +5,7 @@ import { getLogger } from '@app/shared/logging';
 
 const log = getLogger('database');
 
-// Minimal, idempotent schema initialization. Executes the given SQL files in
-// order inside a single transaction. Each .sql file must itself be idempotent
-// (e.g. CREATE TABLE/INDEX IF NOT EXISTS) so restarts are safe. This is
-// intentionally NOT a migration framework.
+// Idempotent schema initialization from SQL files (not a migration framework).
 
 export async function initializeDatabase(pool: Pool, schemaFiles: readonly string[]): Promise<void> {
   const client = await pool.connect();

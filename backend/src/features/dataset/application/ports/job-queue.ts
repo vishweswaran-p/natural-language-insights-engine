@@ -1,7 +1,6 @@
 import type { Job, JobType } from '@app/features/dataset/application/domain/job';
 
-// Asynchronous job queue behavior expressed as intent, not storage. Adapters
-// (e.g. PgJobQueue) own SQL/locking; swapping in SQS/BullMQ is an adapter change.
+// Job queue port (Postgres adapter today).
 
 export interface EnqueueJobInput {
   type: JobType;

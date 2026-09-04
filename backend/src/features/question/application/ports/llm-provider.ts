@@ -1,22 +1,14 @@
 import type { ColumnType, Primitive } from '@app/features/dataset/application/domain/dataset-metadata';
 import type { LlmUsage } from '@app/features/question/application/domain/question';
 
-// Outbound port for the LLM. The question layer depends only on this interface,
-// never on OpenAI/Ollama/HTTP details — so switching or adding a provider is an
-// adapter change with no ripple into the application or domain. This is the seam
-// the hexagonal architecture buys us.
-
-// Compact schema handed to the model for grounding (the CSV is exposed as a
-// single table). Derived from a dataset's profiled metadata.
+// Outbound port for text-to-SQL and summarization.
 export interface DatasetSchema {
   table: string;
   rowCount: number;
   columns: { name: string; type: ColumnType }[];
 }
 
-// Result of asking the model to turn a question into SQL. It either produces a
-// query or declines (`answerable = false`) when the question cannot be answered
-// from the available columns. `usage` is always reported for cost/observability.
+// Result of asking the model to turn a question into SQL.
 export interface SqlGeneration {
   answerable: boolean;
   sql: string | null;

@@ -10,8 +10,7 @@ import { PgDatasetQuery } from '@app/features/dataset/adapters/outbound/persiste
 import { DuckDbDatasetProfiler } from '@app/features/dataset/adapters/outbound/profiling/duckdb-dataset-profiler';
 import { LocalFileStorage } from '@app/features/dataset/adapters/outbound/storage/local-file-storage';
 
-// The single place where concrete adapters are built and injected. Routes and
-// application code never `new` an adapter. The pg Pool is shared; adapters are stateless.
+// Concrete adapters for the dataset feature.
 
 const datasetCommand = (): PgDatasetCommand => new PgDatasetCommand(getPool());
 const storage = (): LocalFileStorage => new LocalFileStorage();
@@ -20,8 +19,7 @@ const profiler = (): DuckDbDatasetProfiler => new DuckDbDatasetProfiler();
 // Read side of datasets, reused by other features (e.g. question answering).
 export const makeDatasetQuery = (): PgDatasetQuery => new PgDatasetQuery(getPool());
 
-// The shared job queue and this feature's processor, exposed so the background
-// composition root can assemble a worker across features.
+// Shared job queue and ingestion processor for the background worker.
 export const makeJobQueue = (): PgJobQueue => new PgJobQueue(getPool());
 export const makeIngestionJobProcessor = (): IngestionJobProcessor =>
   new IngestionJobProcessor(makeDatasetQuery(), datasetCommand(), profiler());

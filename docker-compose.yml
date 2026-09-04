@@ -5,7 +5,7 @@
 #   npm run dev:backend
 #   npm run dev:frontend
 #
-# Quick start / reviewers (builds the app image and starts everything):
+# Full stack (builds the app image and starts everything):
 #   docker compose --profile full up --build
 #   Open http://localhost:1337 — UI, API, and in-process worker on one origin.
 #

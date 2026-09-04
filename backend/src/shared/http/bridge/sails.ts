@@ -21,9 +21,7 @@ function toSailsHandler(handler: RouteDefinition['handler']): SailsHandler {
       }
       return res.status(status).json(body);
     } catch (err) {
-      // Single error boundary for unexpected failures. Known client errors are
-      // returned by handlers themselves; anything reaching here is a 500. Internal
-      // details are logged server-side and never sent to the client.
+      // Log server-side; return a generic 500 to the client.
       log.error('Unhandled error in route handler', { err });
       return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error.' } });
     }
