@@ -18,12 +18,19 @@ let worker: JobWorker | undefined;
 export = {
   bootstrap: async function bootstrap(done: (err?: Error) => void): Promise<void> {
     try {
+      log.info('Bootstrapping application', {
+        environment: process.env.NODE_ENV ?? 'development',
+        workerInApi: runWorkerInApi(),
+      });
+
       const pool = getPool();
+      log.info('Connecting to PostgreSQL');
       await initializeDatabase(pool, schemaFiles);
 
       if (runWorkerInApi()) {
         worker = makeJobWorker();
         worker.start();
+        log.info('In-process background worker enabled', { processors: ['INGESTION', 'QUERY'] });
       } else {
         log.info('In-process job worker disabled; run the standalone worker separately', {
           hint: 'npm --prefix backend run worker',

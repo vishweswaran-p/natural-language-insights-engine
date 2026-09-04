@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import sails = require('sails');
+import path from 'node:path';
+import { schemaFiles } from '@app/composition/schema';
+import { resolveLlmConfig } from '@app/features/question/adapters/outbound/llm/llm-config';
 import { getLogger } from '@app/shared/logging';
+import { logStartupBanner } from '@app/shared/runtime/startup-banner';
 
 const log = getLogger('server');
 
@@ -14,12 +18,13 @@ const log = getLogger('server');
 // so it loads the compiled `config/` and `api/controllers/`.
 
 const port = Number(process.env.PORT) || 1337;
+const environment = process.env.NODE_ENV || 'development';
 
 sails.lift(
   {
     appPath: __dirname,
     port,
-    environment: process.env.NODE_ENV || 'development',
+    environment,
     // Keep Sails lean: this is an API server, not a full-stack MVC app. Hooks
     // for views/assets/ORM/sockets are disabled until a later phase needs them.
     hooks: {
@@ -43,6 +48,18 @@ sails.lift(
       process.exit(1);
       return;
     }
-    log.info('NLIE backend listening', { url: `http://localhost:${port}`, port });
+
+    const llm = resolveLlmConfig();
+    const workerInApi = process.env.RUN_WORKER_IN_API !== 'false';
+
+    logStartupBanner(log, {
+      port,
+      environment,
+      llmProvider: llm.provider,
+      llmModel: llm.model,
+      workerMode: workerInApi ? 'in-process' : 'disabled',
+      database: 'connected',
+      schemaFiles: schemaFiles.map((f) => path.basename(f)),
+    });
   },
 );
