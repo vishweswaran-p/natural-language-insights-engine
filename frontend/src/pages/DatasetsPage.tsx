@@ -3,6 +3,7 @@ import { getDataset, listDatasets } from '../api/datasets';
 import { DatasetDetails } from '../components/DatasetDetails';
 import { DatasetTable } from '../components/DatasetTable';
 import { DatasetUpload } from '../components/DatasetUpload';
+import { RefreshIcon } from '../components/icons';
 import type { Dataset } from '../types/dataset';
 
 export function DatasetsPage() {
@@ -67,6 +68,7 @@ export function DatasetsPage() {
           onClick={() => loadDatasets(true)}
           disabled={loading || refreshing}
         >
+          <RefreshIcon className={`btn-icon${refreshing ? ' btn-icon--spin' : ''}`} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>

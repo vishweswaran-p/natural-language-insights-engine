@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
-import { askQuestion } from '../api/questions';
+import { useCallback, useEffect, useState } from 'react';
+import { askQuestion, listQuestions } from '../api/questions';
 import { listDatasets } from '../api/datasets';
-import { QuestionAnswer } from '../components/QuestionAnswer';
-import { useQuestionResult } from '../hooks/useQuestionResult';
+import { QuestionCard } from '../components/QuestionCard';
+import { RefreshIcon } from '../components/icons';
 import type { Page } from '../App';
 import type { Dataset } from '../types/dataset';
+import type { Question } from '../types/question';
 
 interface Props {
   onNavigate: (page: Page) => void;
 }
 
 const MAX_QUESTION_LENGTH = 2000;
+const PAGE_SIZE = 5;
 
 function optionLabel(dataset: Dataset): string {
   if (dataset.metadata) {
@@ -21,43 +23,50 @@ function optionLabel(dataset: Dataset): string {
 
 export function AskQuestionPage({ onNavigate }: Props) {
   const [readyDatasets, setReadyDatasets] = useState<Dataset[]>([]);
+  const [datasetNames, setDatasetNames] = useState<Record<string, string>>({});
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDatasetId, setSelectedDatasetId] = useState('');
-  const [question, setQuestion] = useState('');
 
+  const [selectedDatasetId, setSelectedDatasetId] = useState('');
+  const [questionText, setQuestionText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // The id of the question currently being answered; drives the polling hook.
-  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
 
-  const { question: result, error: pollError } = useQuestionResult(activeQuestionId);
+  const [page, setPage] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const ready = (await listDatasets()).filter((dataset) => dataset.status === 'READY');
-        if (!active) return;
-        setReadyDatasets(ready);
-        if (ready.length > 0) setSelectedDatasetId(ready[0].id);
-      } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : 'Failed to load datasets.');
-      } finally {
-        if (active) setLoading(false);
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const [datasets, qs] = await Promise.all([listDatasets(), listQuestions()]);
+      const ready = datasets.filter((d) => d.status === 'READY');
+      setReadyDatasets(ready);
+      setDatasetNames(Object.fromEntries(datasets.map((d) => [d.id, d.filename])));
+      setQuestions(qs);
+      if (ready.length > 0) {
+        setSelectedDatasetId((current) => current || ready[0].id);
       }
-    })();
-    return () => {
-      active = false;
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  // Disable submission while a question is in flight (submitting or still
-  // processing), or when the form is incomplete.
-  const answering = submitting || result?.status === 'PROCESSING';
-  const canSubmit = !answering && selectedDatasetId !== '' && question.trim().length > 0;
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(questions.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageQuestions = questions.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
+  const canSubmit = !submitting && selectedDatasetId !== '' && questionText.trim().length > 0;
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -65,10 +74,12 @@ export function AskQuestionPage({ onNavigate }: Props) {
 
     setSubmitting(true);
     setSubmitError(null);
-    setActiveQuestionId(null); // clear any previous answer while the new one starts
     try {
-      const { question: created } = await askQuestion(selectedDatasetId, question.trim());
-      setActiveQuestionId(created.id);
+      const { question: created } = await askQuestion(selectedDatasetId, questionText.trim());
+      setQuestions((prev) => [created, ...prev.filter((q) => q.id !== created.id)]);
+      setExpandedQuestionId(created.id);
+      setPage(0);
+      setQuestionText('');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to submit the question.');
     } finally {
@@ -79,10 +90,10 @@ export function AskQuestionPage({ onNavigate }: Props) {
   return (
     <div className="page">
       <h1>Ask a Question</h1>
-      <p className="subtitle">Select a ready dataset and ask a question about it.</p>
+      <p className="subtitle">Select a ready dataset, ask a question, and view answers below.</p>
 
       {loading ? (
-        <div className="panel muted">Loading datasets…</div>
+        <div className="panel muted">Loading…</div>
       ) : error ? (
         <div className="banner banner-error" role="alert">
           {error}
@@ -96,57 +107,114 @@ export function AskQuestionPage({ onNavigate }: Props) {
           </button>
         </div>
       ) : (
-        <form className="panel" onSubmit={onSubmit}>
-          <div className="field">
-            <label htmlFor="dataset-select">Dataset</label>
-            <select
-              id="dataset-select"
-              value={selectedDatasetId}
-              onChange={(event) => setSelectedDatasetId(event.target.value)}
-              disabled={answering}
-            >
-              {readyDatasets.map((dataset) => (
-                <option key={dataset.id} value={dataset.id}>
-                  {optionLabel(dataset)}
-                </option>
-              ))}
-            </select>
-          </div>
+        <>
+          <form className="panel" onSubmit={onSubmit}>
+            <div className="field">
+              <label htmlFor="dataset-select">Dataset</label>
+              <select
+                id="dataset-select"
+                value={selectedDatasetId}
+                onChange={(event) => setSelectedDatasetId(event.target.value)}
+                disabled={submitting}
+              >
+                {readyDatasets.map((dataset) => (
+                  <option key={dataset.id} value={dataset.id}>
+                    {optionLabel(dataset)}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="field">
-            <label htmlFor="question">Question</label>
-            <textarea
-              id="question"
-              rows={4}
-              maxLength={MAX_QUESTION_LENGTH}
-              placeholder="What were the top 10 products by revenue?"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              disabled={answering}
-            />
-          </div>
+            <div className="field">
+              <label htmlFor="question">Question</label>
+              <textarea
+                id="question"
+                rows={4}
+                maxLength={MAX_QUESTION_LENGTH}
+                placeholder="What were the top 10 products by revenue?"
+                value={questionText}
+                onChange={(event) => setQuestionText(event.target.value)}
+                disabled={submitting}
+              />
+            </div>
 
-          <div className="ask-actions">
-            <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
-              {answering ? (
-                <>
-                  <span className="spinner" aria-hidden="true" /> Answering…
-                </>
-              ) : (
-                'Ask Question'
+            <div className="ask-actions">
+              <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+                {submitting ? (
+                  <>
+                    <span className="spinner" aria-hidden="true" /> Submitting…
+                  </>
+                ) : (
+                  'Ask Question'
+                )}
+              </button>
+              {submitError && (
+                <span className="banner banner-error" role="alert">
+                  {submitError}
+                </span>
               )}
-            </button>
-            {submitError && (
-              <span className="banner banner-error" role="alert">
-                {submitError}
-              </span>
-            )}
-          </div>
-        </form>
-      )}
+            </div>
+          </form>
 
-      {(submitting || activeQuestionId) && (
-        <QuestionAnswer submitting={submitting} question={result} error={pollError} />
+          <section className="questions-section">
+            <div className="page-head">
+              <div>
+                <h2 className="section-title">Your questions</h2>
+                <p className="muted section-lead">Most recent first — expand a row to see the answer.</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => load(true)}
+                disabled={refreshing}
+              >
+                <RefreshIcon className={`btn-icon${refreshing ? ' btn-icon--spin' : ''}`} />
+                {refreshing ? 'Refreshing…' : 'Refresh'}
+              </button>
+            </div>
+
+            {questions.length === 0 ? (
+              <div className="panel muted">No questions yet. Ask one above to get started.</div>
+            ) : (
+              <>
+                <div className="question-list">
+                  {pageQuestions.map((question) => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      datasetName={datasetNames[question.datasetId]}
+                      defaultOpen={question.id === expandedQuestionId}
+                    />
+                  ))}
+                </div>
+
+                {questions.length > PAGE_SIZE && (
+                  <nav className="pagination" aria-label="Question pages">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={safePage === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      Previous
+                    </button>
+                    <span className="pagination-info">
+                      Page {safePage + 1} of {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={safePage >= totalPages - 1}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </nav>
+                )}
+              </>
+            )}
+          </section>
+        </>
       )}
     </div>
   );

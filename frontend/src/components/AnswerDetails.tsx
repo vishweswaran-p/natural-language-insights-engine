@@ -4,9 +4,7 @@ import type { LlmUsage, Primitive, Question } from '../types/question';
 // DOM light for wide/tall tables.
 const DISPLAY_ROW_LIMIT = 100;
 
-// The body of an ANSWERED question: summary, result table, generated SQL, and
-// LLM usage. Shared by the Ask page and the question history so both render
-// answers identically. Assumes `question.answer` is present.
+// The body of an ANSWERED question: summary, result table, generated SQL, and LLM usage.
 export function AnswerDetails({ question }: { question: Question }) {
   const answer = question.answer!;
   const rows = answer.rows.slice(0, DISPLAY_ROW_LIMIT);

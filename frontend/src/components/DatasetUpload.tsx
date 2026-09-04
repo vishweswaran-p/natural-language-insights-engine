@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { uploadDataset } from '../api/datasets';
+import { FileIcon, UploadIcon } from './icons';
 
 interface Props {
   // Called after a successful upload so the parent can refresh the list.
@@ -50,6 +51,7 @@ export function DatasetUpload({ onUploaded }: Props) {
     <form className="panel upload-panel" onSubmit={onSubmit}>
       <div className="upload-controls">
         <label className={`btn btn-secondary file-button${uploading ? ' disabled' : ''}`}>
+          <FileIcon className="btn-icon" />
           Choose CSV file
           <input
             ref={inputRef}
@@ -60,8 +62,18 @@ export function DatasetUpload({ onUploaded }: Props) {
             hidden
           />
         </label>
-        <span className="file-name">{file ? file.name : 'No file selected'}</span>
+        <span className="file-name">
+          {file ? (
+            <>
+              <FileIcon className="btn-icon file-name-icon" />
+              {file.name}
+            </>
+          ) : (
+            'No file selected'
+          )}
+        </span>
         <button type="submit" className="btn btn-primary" disabled={uploading || !file}>
+          <UploadIcon className="btn-icon" />
           {uploading ? 'Uploading…' : 'Upload Dataset'}
         </button>
       </div>

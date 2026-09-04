@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getLlmSettings, updateLlmSettings } from '../api/settings';
+import { CloseIcon } from './icons';
 import type { LlmProviderName, LlmSettings } from '../types/llm-settings';
 
 interface Props {
@@ -63,7 +64,12 @@ export function LlmSettingsModal({ open, onClose, onSaved }: Props) {
         aria-labelledby="llm-settings-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="llm-settings-title">LLM settings</h3>
+        <div className="modal-header">
+          <h3 id="llm-settings-title">LLM settings</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+            <CloseIcon />
+          </button>
+        </div>
         <p className="muted modal-lead">
           Choose which model answers questions. Changes apply immediately to new questions.
         </p>

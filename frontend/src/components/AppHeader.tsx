@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Page } from '../App';
+import { SettingsIcon } from './icons';
 import { LlmSettingsModal } from './LlmSettingsModal';
 
 interface Props {
@@ -39,13 +40,12 @@ export function AppHeader({ page, onNavigate }: Props) {
             </button>
             <button
               type="button"
-              className={`nav-link${page === 'history' ? ' active' : ''}`}
-              onClick={() => onNavigate('history')}
+              className="nav-link nav-link-settings"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="LLM settings"
             >
-              Questions
-            </button>
-            <button type="button" className="nav-link nav-link-settings" onClick={() => setSettingsOpen(true)}>
-              LLM
+              <SettingsIcon className="nav-link-icon" />
+              LLM Settings
             </button>
           </nav>
         </div>

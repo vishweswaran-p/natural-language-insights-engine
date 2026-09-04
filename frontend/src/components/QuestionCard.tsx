@@ -1,0 +1,61 @@
+import { useState } from 'react';
+import { AnswerDetails } from './AnswerDetails';
+import { QuestionStatusBadge } from './QuestionStatusBadge';
+import { useQuestionResult } from '../hooks/useQuestionResult';
+import type { Question } from '../types/question';
+import { formatDate } from '../utils/formatDate';
+
+interface Props {
+  question: Question;
+  datasetName?: string;
+  defaultOpen?: boolean;
+}
+
+export function QuestionCard({ question: initial, datasetName, defaultOpen = false }: Props) {
+  const [open, setOpen] = useState(defaultOpen);
+  const { question: polled } = useQuestionResult(initial.status === 'PROCESSING' ? initial.id : null);
+  const question = polled ?? initial;
+
+  return (
+    <article className="panel question-card">
+      <button
+        type="button"
+        className="question-card-head"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <div className="question-card-heading">
+          <p className="question-text">"{question.question}"</p>
+          <p className="muted question-meta">
+            {datasetName ?? 'Unknown dataset'} · {formatDate(question.createdAt)}
+          </p>
+        </div>
+        <div className="question-card-head-right">
+          <QuestionStatusBadge status={question.status} />
+          <span className={`chevron${open ? ' chevron-open' : ''}`} aria-hidden="true" />
+        </div>
+      </button>
+
+      {open && (
+        <div className="question-card-body">
+          {question.status === 'ANSWERED' && question.answer ? (
+            <AnswerDetails question={question} />
+          ) : question.status === 'REFUSED' ? (
+            <div className="banner banner-info">
+              {question.refusalReason ?? 'This question cannot be answered from the dataset.'}
+            </div>
+          ) : question.status === 'FAILED' ? (
+            <div className="banner banner-error" role="alert">
+              {question.errorMessage ?? 'Something went wrong while answering this question.'}
+            </div>
+          ) : (
+            <div className="answer-loading">
+              <span className="spinner spinner-lg" aria-hidden="true" />
+              <span>Answering your question…</span>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}

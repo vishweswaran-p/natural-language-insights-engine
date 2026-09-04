@@ -222,6 +222,22 @@ h1 {
   background: var(--bg);
 }
 
+.btn-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.btn-icon--spin {
+  animation: btn-icon-spin 0.8s linear infinite;
+}
+
+@keyframes btn-icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .btn-link {
   background: transparent;
   color: var(--primary);
@@ -255,9 +271,17 @@ h1 {
 }
 
 .file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-muted);
   flex: 1;
   min-width: 120px;
+}
+
+.file-name-icon {
+  opacity: 0.65;
+  flex-shrink: 0;
 }
 
 /* ---- banners ---- */
@@ -710,6 +734,36 @@ textarea {
   font-size: 0.8rem;
 }
 
+.questions-section {
+  margin-top: 28px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.section-lead {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 7rem;
+  text-align: center;
+}
+
 /* ---- LLM settings modal ---- */
 .modal-backdrop {
   position: fixed;
@@ -725,6 +779,53 @@ textarea {
 .modal {
   width: min(100%, 480px);
   padding: 20px;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-header h3 {
+  flex: 1;
+  padding-right: 8px;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.modal-close svg {
+  width: 18px;
+  height: 18px;
 }
 
 .modal-lead {
@@ -779,9 +880,19 @@ textarea {
 }
 
 .nav-link-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-left: 4px;
+  padding-left: 14px;
   border-left: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0 6px 6px 0;
+}
+
+.nav-link-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.88;
 }
 
 .app-toast {
