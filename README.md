@@ -34,21 +34,58 @@ the filesystem, and the LLM are all adapters behind ports and can be swapped.
 
 - **Backend:** Node.js, TypeScript, Sails.js (thin HTTP runtime), PostgreSQL, DuckDB
 - **Frontend:** React, TypeScript, Vite (no extra runtime dependencies)
-- **Infrastructure:** Docker Compose (PostgreSQL, Ollama, optional full-stack app image)
+- **Infrastructure:** Docker Compose (PostgreSQL + Ollama by default; optional full-stack app image via a Compose profile)
 
 ## Prerequisites
 
 - **Docker** (recommended — runs everything with one command)
 - **Node.js >= 20** (only if developing on the host without Docker)
 
-## Quick start (Docker — recommended for reviewers)
+## Docker setup
 
-One command builds the frontend, starts the API + in-process worker, PostgreSQL,
-and Ollama (local LLM). On first boot the entrypoint pulls the Ollama model —
-this can take a few minutes.
+`docker-compose.yml` always defines **PostgreSQL** and **Ollama**. The
+**application container** is optional — it sits behind the Compose profile `full`
+so local development does not build or start the app image unless you ask for it.
+
+| Goal | Command | What runs |
+| ---- | ------- | --------- |
+| **Quick start** (reviewers, demo) | `npm run docker:up` | Postgres + Ollama + **built app image** on port 1337 |
+| **Local development** (hot reload) | `npm run db:up` | Postgres + Ollama only; app runs on the host |
+
+Equivalent raw Compose commands:
 
 ```bash
-docker compose up --build
+# Infra only (default — no app image build)
+docker compose up -d
+
+# Full stack (builds Dockerfile → app container)
+docker compose --profile full up --build
+```
+
+### How the app image is built (`Dockerfile`)
+
+The Dockerfile is a **multi-stage build** that produces one production image:
+
+1. **frontend-build** — `npm ci` + `vite build` → static SPA in `frontend/dist`
+2. **backend-build** — `npm ci` + `tsc` → compiled API in `backend/dist`
+3. **production** — production `npm ci` for backend, copies both build outputs into a slim Node 20 image
+
+At runtime, `docker/entrypoint.sh`:
+
+- waits for Ollama and pulls the configured model (when `LLM_PROVIDER=local`)
+- starts `node dist/app.js` — Sails serves the API **and** the built frontend on port **1337**
+
+Uploads persist in the `insights-uploads` Docker volume (`backend/data/uploads`).
+
+### Quick start (Docker — recommended for reviewers)
+
+One command builds the app image and starts PostgreSQL, Ollama, and the API +
+in-process worker. On first boot the entrypoint pulls the Ollama model — this can
+take a few minutes.
+
+```bash
+npm run docker:up
+# or: docker compose --profile full up --build
 ```
 
 Open **`http://localhost:1337`** for the UI and API (same origin).
@@ -58,21 +95,19 @@ Optional: copy `.env.example` to `.env` in the repo root to override settings
 
 ```bash
 cp .env.example .env   # edit as needed
-docker compose up --build
+npm run docker:up
 ```
 
-Stop and remove containers:
+Stop and remove the full stack:
 
 ```bash
-docker compose down
+npm run docker:down
 ```
-
-Equivalent npm scripts: `npm run docker:up` / `npm run docker:down`.
 
 ## Local development (on the host)
 
-For active development with hot reload, run infrastructure in Docker and the app
-on the host:
+For active development with hot reload, start **only** Postgres and Ollama in
+Docker. A plain `docker compose up` does **not** build or run the app container.
 
 ```bash
 # 1. Start PostgreSQL + Ollama only
@@ -88,6 +123,8 @@ docker compose exec ollama ollama pull qwen2.5-coder:1.5b
 # 4. Build and start (or use dev servers below)
 npm start
 ```
+
+Stop infra when done: `npm run db:down`
 
 Open **`http://localhost:1337`** for the UI; the API is on the same origin under
 `/api`.

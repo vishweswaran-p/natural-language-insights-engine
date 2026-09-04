@@ -1,12 +1,16 @@
-# Full local stack: PostgreSQL + Ollama + app (built frontend + API/worker).
+# Compose stack for PostgreSQL + Ollama, with an optional full-stack app image.
 #
-# Quick start (builds images, starts everything):
-#   docker compose up --build
+# Local development (infra only — run the app on the host with hot reload):
+#   docker compose up -d
+#   npm run dev:backend
+#   npm run dev:frontend
 #
-# Open http://localhost:1337 — UI, API, and in-process worker on one origin.
+# Quick start / reviewers (builds the app image and starts everything):
+#   docker compose --profile full up --build
+#   Open http://localhost:1337 — UI, API, and in-process worker on one origin.
 #
-# Infra only (for `npm run dev:backend` on the host):
-#   docker compose up -d postgres ollama
+# The `app` service is behind the `full` profile so a plain `docker compose up`
+# never builds or starts the application container.
 #
 # Optional: copy .env.example to .env in the repo root to override LLM settings
 # (e.g. LLM_PROVIDER=openai and OPENAI_API_KEY=sk-...).
@@ -43,6 +47,7 @@ services:
       retries: 5
 
   app:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: Dockerfile
