@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Pool } from 'pg';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('database');
 
 // Minimal, idempotent schema initialization. Executes the given SQL files in
 // order inside a single transaction. Each .sql file must itself be idempotent
@@ -16,8 +19,7 @@ export async function initializeDatabase(pool: Pool, schemaFiles: readonly strin
       await client.query(sql);
     }
     await client.query('COMMIT');
-    // eslint-disable-next-line no-console
-    console.info(`Database schema ready (applied: ${schemaFiles.map((f) => path.basename(f)).join(', ')}).`);
+    log.info('Database schema ready', { applied: schemaFiles.map((f) => path.basename(f)) });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

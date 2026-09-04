@@ -1,4 +1,7 @@
 import type { Ctx, PlatformRequest, RouteDefinition } from '@app/shared/http/types';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('http');
 
 /** Minimal `res` contract this bridge uses (Sails/Express are compatible). */
 type SailsResponseLike = {
@@ -21,8 +24,7 @@ function toSailsHandler(handler: RouteDefinition['handler']): SailsHandler {
       // Single error boundary for unexpected failures. Known client errors are
       // returned by handlers themselves; anything reaching here is a 500. Internal
       // details are logged server-side and never sent to the client.
-      // eslint-disable-next-line no-console
-      console.error('Unhandled error in route handler', err);
+      log.error('Unhandled error in route handler', { err });
       return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error.' } });
     }
   };

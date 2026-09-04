@@ -6,6 +6,9 @@ import { JobType } from '@app/features/dataset/application/domain/job';
 import type { DatasetCommand } from '@app/features/dataset/application/ports/dataset.command';
 import type { FileStorage } from '@app/features/dataset/application/ports/file-storage';
 import type { JobQueue } from '@app/features/dataset/application/ports/job-queue';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('create-dataset');
 
 export interface CreateDatasetInput {
   filename: string;
@@ -52,8 +55,7 @@ export class CreateDatasetUseCase {
     } catch (err) {
       // File was stored but the insert failed: clean it up (best-effort).
       await this.storage.remove(id).catch((cleanupErr) => {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to clean up stored file for dataset ${id}`, cleanupErr);
+        log.error('Failed to clean up stored file after dataset insert error', { datasetId: id, err: cleanupErr });
       });
       throw err;
     }
@@ -63,11 +65,16 @@ export class CreateDatasetUseCase {
     // the dataset FAILED so it is never left stuck in PROCESSING.
     try {
       const job = await this.jobQueue.enqueue({ type: JobType.Ingestion, datasetId: id });
+      log.info('Dataset upload accepted; INGESTION job enqueued', {
+        datasetId: id,
+        jobId: job.id,
+        filename: input.filename,
+        fileSizeBytes: input.fileSizeBytes,
+      });
       return { dataset, job };
     } catch (err) {
       await this.datasets.markFailed(id, 'Failed to enqueue ingestion job.').catch((markErr) => {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to mark dataset ${id} FAILED after enqueue error`, markErr);
+        log.error('Failed to mark dataset FAILED after enqueue error', { datasetId: id, err: markErr });
       });
       throw err;
     }

@@ -1,9 +1,12 @@
 import { schemaFiles } from '@app/composition/schema';
 import { makeJobWorker } from '@app/composition/worker';
 import type { JobWorker } from '@app/features/dataset/application/worker/job-worker';
+import { getLogger } from '@app/shared/logging';
 import { closePool, getPool } from '@app/shared/persistence/postgres/postgres-client';
 import { initializeDatabase } from '@app/shared/persistence/postgres/initialize-database';
 import { onShutdown } from '@app/shared/runtime/graceful-shutdown';
+
+const log = getLogger('bootstrap');
 
 // Sails runs this once during `lift`, before the server accepts requests. We
 // connect to PostgreSQL and ensure the schema exists. The background worker runs
@@ -22,8 +25,9 @@ export = {
         worker = makeJobWorker();
         worker.start();
       } else {
-        // eslint-disable-next-line no-console
-        console.info('In-process job worker disabled (RUN_WORKER_IN_API=false); run `npm run worker` separately.');
+        log.info('In-process job worker disabled; run the standalone worker separately', {
+          hint: 'npm --prefix backend run worker',
+        });
       }
 
       onShutdown(async () => {

@@ -6,6 +6,9 @@ import type { DatasetQuery } from '@app/features/dataset/application/ports/datas
 import type { JobQueue } from '@app/features/dataset/application/ports/job-queue';
 import type { Question } from '@app/features/question/application/domain/question';
 import type { QuestionCommand } from '@app/features/question/application/ports/question.command';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('ask-question');
 
 // Raised when a question is asked against a dataset that cannot be queried.
 // The HTTP layer maps `reason` to a status code; the application stays free of
@@ -64,11 +67,16 @@ export class AskQuestionUseCase {
         datasetId: input.datasetId,
         payload: { questionId: question.id },
       });
+      log.info('Question accepted; QUERY job enqueued', {
+        questionId: question.id,
+        jobId: job.id,
+        datasetId: input.datasetId,
+        question: input.question,
+      });
       return { question, job };
     } catch (err) {
       await this.questions.markFailed(question.id, 'Failed to enqueue query job.').catch((markErr) => {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to mark question ${question.id} FAILED after enqueue error`, markErr);
+        log.error('Failed to mark question FAILED after enqueue error', { questionId: question.id, err: markErr });
       });
       throw err;
     }

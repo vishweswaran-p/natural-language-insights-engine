@@ -1,6 +1,9 @@
 import { unlink } from 'node:fs/promises';
 import { ApiError } from '@app/shared/http';
 import type { PlatformRequest } from '@app/shared/http';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('upload');
 
 // Maximum accepted upload size for this assignment.
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
@@ -48,8 +51,7 @@ export async function cleanupTempFiles(files: UploadedFile[]): Promise<void> {
   await Promise.all(
     files.map((file) =>
       unlink(file.fd).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to remove temp upload ${file.fd}`, err);
+        log.warn('Failed to remove temp upload file', { path: file.fd, err });
       }),
     ),
   );

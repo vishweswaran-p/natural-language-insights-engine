@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import sails = require('sails');
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('server');
 
 // Entry point / composition of the HTTP runtime.
 //
@@ -30,14 +33,16 @@ sails.lift(
     },
     blueprints: { actions: false, rest: false, shortcuts: false },
     security: { csrf: false },
-    log: { level: process.env.LOG_LEVEL || 'info' },
+    // Application logging goes through Winston (getLogger). Silence Sails' own
+    // logger to avoid duplicate, differently-formatted lines in the terminal.
+    log: { level: 'silent' },
   },
   (err?: Error) => {
     if (err) {
-      sails.log.error('Failed to lift Sails:', err);
+      log.error('Failed to lift Sails', { err });
       process.exit(1);
       return;
     }
-    sails.log.info(`NLIE backend listening on http://localhost:${port}`);
+    log.info('NLIE backend listening', { url: `http://localhost:${port}`, port });
   },
 );

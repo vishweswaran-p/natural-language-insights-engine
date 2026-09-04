@@ -7,6 +7,9 @@ import type { DatasetSchema, LlmProvider } from '@app/features/question/applicat
 import type { QueryEngine } from '@app/features/question/application/ports/query-engine';
 import type { QuestionCommand } from '@app/features/question/application/ports/question.command';
 import type { QuestionQuery } from '@app/features/question/application/ports/question.query';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('query-processor');
 
 // Client-safe message. Real error details are logged, never persisted/returned.
 const SAFE_ERROR_MESSAGE = 'Failed to answer the question.';
@@ -51,8 +54,16 @@ export class QueryJobProcessor implements JobProcessor {
       columns: dataset.metadata.columns.map((c) => ({ name: c.name, type: c.type })),
     };
 
-    // eslint-disable-next-line no-console
-    console.info(`Answering question ${questionId} (dataset ${dataset.id}) via ${this.llm.name}.`);
+    log.info('Answering question', {
+      jobId: job.id,
+      questionId,
+      datasetId: dataset.id,
+      datasetFilename: dataset.filename,
+      llm: this.llm.name,
+      question: truncate(question.question, 120),
+      rowCount: schema.rowCount,
+      columnCount: schema.columns.length,
+    });
     const startedAt = Date.now();
 
     // 1. Question -> SQL (or an explicit refusal).
@@ -60,15 +71,22 @@ export class QueryJobProcessor implements JobProcessor {
     try {
       generation = await this.llm.generateSql({ question: question.question, schema });
     } catch (err) {
-      logError(`LLM SQL generation failed for question ${questionId}`, err);
+      log.error('LLM SQL generation failed', { jobId: job.id, questionId, err });
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
+
+    log.info('SQL generation completed', {
+      jobId: job.id,
+      questionId,
+      answerable: generation.answerable,
+      sql: generation.sql ? truncate(generation.sql, 200) : null,
+      ...usageFields(generation.usage),
+    });
 
     if (!generation.answerable || !generation.sql) {
       const reason = generation.refusalReason ?? 'The question cannot be answered from this dataset.';
       await this.questionCommand.markRefused(questionId, reason, generation.usage);
-      // eslint-disable-next-line no-console
-      console.info(`Question ${questionId} refused: ${reason}`);
+      log.info('Question refused by LLM', { jobId: job.id, questionId, reason, ...usageFields(generation.usage) });
       return;
     }
 
@@ -79,21 +97,36 @@ export class QueryJobProcessor implements JobProcessor {
     } catch (err) {
       if (err instanceof GuardrailError) {
         await this.questionCommand.markRefused(questionId, err.message, generation.usage);
-        // eslint-disable-next-line no-console
-        console.info(`Question ${questionId} refused by guardrail: ${err.message}`);
+        log.warn('Question refused by SQL guardrail', {
+          jobId: job.id,
+          questionId,
+          reason: err.message,
+          sql: truncate(generation.sql, 200),
+        });
         return;
       }
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
 
+    log.debug('SQL passed guardrail', { jobId: job.id, questionId, sql: truncate(sql, 200) });
+
     // 3. Execute against the real data — the answer is grounded in these rows.
     let result;
+    const queryStartedAt = Date.now();
     try {
       result = await this.queryEngine.run(dataset.storagePath, sql);
     } catch (err) {
-      logError(`Query execution failed for question ${questionId}`, err);
+      log.error('Query execution failed', { jobId: job.id, questionId, sql: truncate(sql, 200), err });
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
+
+    log.info('Query executed', {
+      jobId: job.id,
+      questionId,
+      rowCount: result.rows.length,
+      columns: result.columns,
+      durationMs: Date.now() - queryStartedAt,
+    });
 
     // 4. Summarize the result rows (best-effort; a summary failure must not lose the answer).
     let usage = generation.usage;
@@ -102,8 +135,9 @@ export class QueryJobProcessor implements JobProcessor {
       const summarized = await this.llm.summarize({ question: question.question, columns: result.columns, rows: result.rows });
       summary = summarized.text;
       usage = combineUsage(generation.usage, summarized.usage);
+      log.info('Summary generated', { jobId: job.id, questionId, ...usageFields(summarized.usage) });
     } catch (err) {
-      logError(`Summary generation failed for question ${questionId} (continuing without it)`, err);
+      log.warn('Summary generation failed; continuing with row count only', { jobId: job.id, questionId, err });
       summary = `Returned ${result.rows.length} row(s).`;
     }
 
@@ -113,13 +147,22 @@ export class QueryJobProcessor implements JobProcessor {
       usage,
     });
 
-    // eslint-disable-next-line no-console
-    console.info(`Question ${questionId} answered in ${Date.now() - startedAt}ms (${result.rows.length} rows).`);
+    log.info('Question answered', {
+      jobId: job.id,
+      questionId,
+      datasetId: dataset.id,
+      rowCount: result.rows.length,
+      durationMs: Date.now() - startedAt,
+      ...usageFields(usage),
+    });
   }
 
   async onTerminalFailure(job: Job, errorMessage: string): Promise<void> {
     const questionId = questionIdOf(job);
-    if (questionId) await this.questionCommand.markFailed(questionId, errorMessage);
+    if (questionId) {
+      await this.questionCommand.markFailed(questionId, errorMessage);
+      log.error('Question marked FAILED after terminal job failure', { jobId: job.id, questionId, errorMessage });
+    }
   }
 }
 
@@ -128,7 +171,6 @@ function questionIdOf(job: Job): string | null {
   return payload && typeof payload.questionId === 'string' ? payload.questionId : null;
 }
 
-// Aggregate token/cost/latency across the SQL-generation and summary calls.
 function combineUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
   const add = (x: number | null, y: number | null): number | null =>
     x === null && y === null ? null : (x ?? 0) + (y ?? 0);
@@ -143,7 +185,18 @@ function combineUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
   };
 }
 
-function logError(message: string, err: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(message, err instanceof Error ? err.message : err);
+function usageFields(usage: LlmUsage) {
+  return {
+    llmProvider: usage.provider,
+    llmModel: usage.model,
+    promptTokens: usage.promptTokens,
+    completionTokens: usage.completionTokens,
+    totalTokens: usage.totalTokens,
+    estimatedCostUsd: usage.estimatedCostUsd,
+    llmLatencyMs: usage.latencyMs,
+  };
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max)}…`;
 }

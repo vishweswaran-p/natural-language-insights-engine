@@ -1,3 +1,7 @@
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('runtime');
+
 // Register a one-time graceful-shutdown task on SIGINT/SIGTERM. Shared by the
 // API bootstrap and the standalone worker so both tear down the same way.
 export function onShutdown(task: () => Promise<void> | void): void {
@@ -6,13 +10,12 @@ export function onShutdown(task: () => Promise<void> | void): void {
   const run = async (signal: string): Promise<void> => {
     if (handled) return;
     handled = true;
-    // eslint-disable-next-line no-console
-    console.info(`Received ${signal}, shutting down...`);
+    log.info('Shutdown signal received', { signal });
     try {
       await task();
+      log.info('Shutdown complete');
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Error during shutdown', err);
+      log.error('Error during shutdown', { err });
     } finally {
       process.exit(0);
     }

@@ -9,6 +9,9 @@ import type {
   TopValue,
 } from '@app/features/dataset/application/domain/dataset-metadata';
 import type { DatasetProfiler, ProfileDatasetInput } from '@app/features/dataset/application/ports/dataset-profiler';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('duckdb-profiler');
 
 // The only file that imports DuckDB: profiles a CSV through an in-memory connection
 // and returns domain DatasetMetadata. DuckDB specifics never leak past this adapter.
@@ -36,8 +39,7 @@ export class DuckDbDatasetProfiler implements DatasetProfiler {
       const columns = await describeColumns(connection);
       const rowCount = await queryScalarNumber(connection, 'SELECT count(*) AS c FROM dataset');
 
-      // eslint-disable-next-line no-console
-      console.info(`Profiling ${filename}: ${rowCount} rows, ${columns.length} columns; computing statistics...`);
+      log.info('Computing column statistics', { filename, rowCount, columnCount: columns.length });
 
       const counts = await queryColumnCounts(connection, columns);
       const numericStats = await queryNumericStats(connection, columns);

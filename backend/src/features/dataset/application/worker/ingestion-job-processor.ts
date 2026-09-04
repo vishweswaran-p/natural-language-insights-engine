@@ -3,6 +3,9 @@ import type { DatasetCommand } from '@app/features/dataset/application/ports/dat
 import type { DatasetProfiler } from '@app/features/dataset/application/ports/dataset-profiler';
 import type { DatasetQuery } from '@app/features/dataset/application/ports/dataset.query';
 import { type JobProcessor, ProcessingError } from '@app/features/dataset/application/worker/job-processor';
+import { getLogger } from '@app/shared/logging';
+
+const log = getLogger('ingestion-processor');
 
 // Client-safe message. Real error details are logged, never persisted/returned.
 const SAFE_ERROR_MESSAGE = 'Dataset profiling failed.';
@@ -27,33 +30,47 @@ export class IngestionJobProcessor implements JobProcessor {
       });
     }
 
-    // eslint-disable-next-line no-console
-    console.info(`Profiling started for dataset ${dataset.id} (${dataset.filename}).`);
+    log.info('Profiling started', {
+      jobId: job.id,
+      datasetId: dataset.id,
+      filename: dataset.filename,
+      fileSizeBytes: dataset.fileSizeBytes,
+    });
     const startedAt = Date.now();
 
     let metadata;
     try {
       metadata = await this.profiler.profile({ storagePath: dataset.storagePath, filename: dataset.filename });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(
-        `Profiling failed for dataset ${dataset.id} after ${Date.now() - startedAt}ms:`,
-        err instanceof Error ? err.message : err,
-      );
+      log.error('Profiling failed', {
+        jobId: job.id,
+        datasetId: dataset.id,
+        filename: dataset.filename,
+        durationMs: Date.now() - startedAt,
+        err,
+      });
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
 
-    // Persisted only on a fully successful profile — never partial metadata.
     await this.datasetCommand.markReady(dataset.id, metadata);
 
-    // eslint-disable-next-line no-console
-    console.info(
-      `Profiling completed for dataset ${dataset.id}: ${metadata.dataset.rowCount} rows, ` +
-        `${metadata.dataset.columnCount} columns in ${Date.now() - startedAt}ms.`,
-    );
+    log.info('Profiling completed; dataset READY', {
+      jobId: job.id,
+      datasetId: dataset.id,
+      filename: dataset.filename,
+      rowCount: metadata.dataset.rowCount,
+      columnCount: metadata.dataset.columnCount,
+      warningCount: metadata.warnings.length,
+      durationMs: Date.now() - startedAt,
+    });
   }
 
   async onTerminalFailure(job: Job, errorMessage: string): Promise<void> {
     await this.datasetCommand.markFailed(job.datasetId, errorMessage);
+    log.error('Dataset marked FAILED after terminal job failure', {
+      jobId: job.id,
+      datasetId: job.datasetId,
+      errorMessage,
+    });
   }
 }
