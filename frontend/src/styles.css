@@ -725,6 +725,18 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+.question-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-provenance {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .question-text {
   margin: 0;
   font-weight: 500;

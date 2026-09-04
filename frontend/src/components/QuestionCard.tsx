@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AnswerDetails } from './AnswerDetails';
+import { QuestionProvenance } from './QuestionProvenance';
 import { QuestionStatusBadge } from './QuestionStatusBadge';
 import { useQuestionResult } from '../hooks/useQuestionResult';
 import type { Question } from '../types/question';
@@ -52,12 +53,18 @@ export function QuestionCard({ question: initial, datasetName, defaultOpen = fal
           {question.status === 'ANSWERED' && question.answer ? (
             <AnswerDetails question={question} />
           ) : question.status === 'REFUSED' ? (
-            <div className="banner banner-info">
-              {question.refusalReason ?? 'This question cannot be answered from the dataset.'}
+            <div className="question-outcome">
+              <div className="banner banner-info">
+                {question.refusalReason ?? 'This question cannot be answered from the dataset.'}
+              </div>
+              <QuestionProvenance question={question} />
             </div>
           ) : question.status === 'FAILED' ? (
-            <div className="banner banner-error" role="alert">
-              {question.errorMessage ?? 'Something went wrong while answering this question.'}
+            <div className="question-outcome">
+              <div className="banner banner-error" role="alert">
+                {question.errorMessage ?? 'Something went wrong while answering this question.'}
+              </div>
+              <QuestionProvenance question={question} />
             </div>
           ) : (
             <div className="answer-loading">

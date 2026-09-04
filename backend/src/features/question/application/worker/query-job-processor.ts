@@ -97,7 +97,7 @@ export class QueryJobProcessor implements JobProcessor {
       sql = validateReadOnlySql(generation.sql);
     } catch (err) {
       if (err instanceof GuardrailError) {
-        await this.questionCommand.markRefused(questionId, err.message, generation.usage);
+        await this.questionCommand.markRefused(questionId, err.message, generation.usage, generation.sql);
         log.warn('Question refused by SQL guardrail', {
           jobId: job.id,
           questionId,
@@ -118,6 +118,7 @@ export class QueryJobProcessor implements JobProcessor {
       result = await this.queryEngine.run(dataset.storagePath, sql);
     } catch (err) {
       log.error('Query execution failed', { jobId: job.id, questionId, sql: truncate(sql, 200), err });
+      await this.questionCommand.saveGeneration(questionId, sql, generation.usage);
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
 

@@ -29,14 +29,25 @@ export class PgQuestionCommand implements QuestionCommand {
     );
   }
 
-  async markRefused(id: string, reason: string, usage: LlmUsage | null): Promise<void> {
+  async markRefused(id: string, reason: string, usage: LlmUsage | null, generatedSql: string | null = null): Promise<void> {
     await this.pool.query(
       `UPDATE questions
-       SET status = 'REFUSED', refusal_reason = $2, error_message = NULL,
+       SET status = 'REFUSED', refusal_reason = $2, generated_sql = $3, error_message = NULL,
+           llm_provider = $4, llm_model = $5, prompt_tokens = $6, completion_tokens = $7, total_tokens = $8,
+           estimated_cost_usd = $9, latency_ms = $10, updated_at = NOW()
+       WHERE id = $1`,
+      [id, reason, generatedSql, usage?.provider ?? null, usage?.model ?? null, usage?.promptTokens ?? null, usage?.completionTokens ?? null, usage?.totalTokens ?? null, usage?.estimatedCostUsd ?? null, usage?.latencyMs ?? null],
+    );
+  }
+
+  async saveGeneration(id: string, generatedSql: string, usage: LlmUsage): Promise<void> {
+    await this.pool.query(
+      `UPDATE questions
+       SET generated_sql = $2,
            llm_provider = $3, llm_model = $4, prompt_tokens = $5, completion_tokens = $6, total_tokens = $7,
            estimated_cost_usd = $8, latency_ms = $9, updated_at = NOW()
        WHERE id = $1`,
-      [id, reason, usage?.provider ?? null, usage?.model ?? null, usage?.promptTokens ?? null, usage?.completionTokens ?? null, usage?.totalTokens ?? null, usage?.estimatedCostUsd ?? null, usage?.latencyMs ?? null],
+      [id, generatedSql, usage.provider, usage.model, usage.promptTokens, usage.completionTokens, usage.totalTokens, usage.estimatedCostUsd, usage.latencyMs],
     );
   }
 

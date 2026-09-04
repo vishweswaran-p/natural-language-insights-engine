@@ -1,10 +1,8 @@
-import type { LlmUsage, Primitive, Question } from '../types/question';
+import type { Primitive, Question } from '../types/question';
+import { QuestionProvenance } from './QuestionProvenance';
 
-// Cap on rendered rows — the backend already limits results, this just keeps the
-// DOM light for wide/tall tables.
 const DISPLAY_ROW_LIMIT = 100;
 
-// The body of an ANSWERED question: summary, result table, generated SQL, and LLM usage.
 export function AnswerDetails({ question }: { question: Question }) {
   const answer = question.answer!;
   const rows = answer.rows.slice(0, DISPLAY_ROW_LIMIT);
@@ -47,49 +45,9 @@ export function AnswerDetails({ question }: { question: Question }) {
         {truncated ? ` (showing first ${rows.length})` : ''}
       </p>
 
-      {question.generatedSql && (
-        <details className="sql-details">
-          <summary>View generated SQL</summary>
-          <pre className="sql-code">{question.generatedSql}</pre>
-        </details>
-      )}
-
-      {question.usage && <UsageMeta usage={question.usage} />}
+      <QuestionProvenance question={question} />
     </div>
   );
-}
-
-function UsageMeta({ usage }: { usage: LlmUsage }) {
-  return (
-    <dl className="usage-meta">
-      <UsageItem label="Model" value={`${usage.provider}:${usage.model}`} />
-      <UsageItem label="Input" value={formatTokens(usage.promptTokens)} />
-      <UsageItem label="Output" value={formatTokens(usage.completionTokens)} />
-      <UsageItem label="Total" value={formatTokens(usage.totalTokens)} />
-      <UsageItem label="Cost" value={formatCost(usage.estimatedCostUsd)} />
-      {usage.latencyMs !== null && <UsageItem label="Latency" value={`${usage.latencyMs.toLocaleString('en-US')} ms`} />}
-    </dl>
-  );
-}
-
-function UsageItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="usage-item">
-      <dt className="usage-label">{label}</dt>
-      <dd className="usage-value">{value}</dd>
-    </div>
-  );
-}
-
-function formatTokens(tokens: number | null): string {
-  return tokens === null ? '—' : tokens.toLocaleString('en-US');
-}
-
-function formatCost(cost: number | null): string {
-  if (cost === null) return '—';
-  if (cost === 0) return '$0.00';
-  // Per-query costs are tiny; show more precision for sub-cent amounts.
-  return `$${cost.toFixed(cost < 0.01 ? 6 : 4)}`;
 }
 
 function isNumericColumn(rows: Primitive[][], colIndex: number): boolean {

@@ -18,6 +18,7 @@ export interface AnsweredResult {
 export interface QuestionCommand {
   create(question: NewQuestion): Promise<Question>;
   markAnswered(id: string, result: AnsweredResult): Promise<void>;
-  markRefused(id: string, reason: string, usage: LlmUsage | null): Promise<void>;
+  markRefused(id: string, reason: string, usage: LlmUsage | null, generatedSql?: string | null): Promise<void>;
+  saveGeneration(id: string, generatedSql: string, usage: LlmUsage): Promise<void>;
   markFailed(id: string, errorMessage: string): Promise<void>;
 }
