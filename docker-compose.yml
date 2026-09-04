@@ -1,6 +1,16 @@
-# Local development infrastructure: PostgreSQL and the local LLM (Ollama).
-# The backend and frontend are run directly on the host and reach these via the
-# published ports, matching the values in backend/.env.
+# Full local stack: PostgreSQL + Ollama + app (built frontend + API/worker).
+#
+# Quick start (builds images, starts everything):
+#   docker compose up --build
+#
+# Open http://localhost:1337 — UI, API, and in-process worker on one origin.
+#
+# Infra only (for `npm run dev:backend` on the host):
+#   docker compose up -d postgres ollama
+#
+# Optional: copy .env.example to .env in the repo root to override LLM settings
+# (e.g. LLM_PROVIDER=openai and OPENAI_API_KEY=sk-...).
+
 services:
   postgres:
     image: postgres:16
@@ -19,13 +29,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Local, OpenAI-compatible LLM. Used when LLM_PROVIDER=local (the default).
-  # Exposes an OpenAI-compatible API at http://localhost:11434/v1 — the same
-  # shape as OpenAI, which is why one adapter serves both.
-  # NOTE: on macOS/Windows, Docker has no GPU access, so inference is CPU-only.
-  # A smaller model (e.g. qwen2.5-coder:1.5b) is recommended here for speed.
-  # After `docker compose up -d`, pull the model once:
-  #   docker compose exec ollama ollama pull qwen2.5-coder:1.5b
   ollama:
     image: ollama/ollama:latest
     container_name: insights-ollama
@@ -39,6 +42,41 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insights-app
+    ports:
+      - "1337:1337"
+    environment:
+      NODE_ENV: production
+      PORT: 1337
+      DATABASE_URL: postgresql://insights:insights@postgres:5432/insights
+      RUN_WORKER_IN_API: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LLM_PROVIDER: ${LLM_PROVIDER:-local}
+      OLLAMA_BASE_URL: http://ollama:11434/v1
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:1.5b}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    volumes:
+      - insights-uploads:/app/backend/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1337/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
 volumes:
   insights-pg-data:
   insights-ollama-data:
+  insights-uploads:

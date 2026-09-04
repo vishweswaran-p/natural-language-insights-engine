@@ -13,54 +13,81 @@ are then summarized back in natural language.
 ## Highlights
 
 - **Asynchronous by design.** Uploads and questions return `202 Accepted`
-  immediately and are processed by a background worker through a PostgreSQL job
-  queue (with retries and stale-job recovery). The same queue/worker serves both
-  ingestion and query jobs.
+immediately and are processed by a background worker through a PostgreSQL job
+queue (with retries and stale-job recovery). The same queue/worker serves both
+ingestion and query jobs.
 - **Swappable LLM provider.** The application depends only on an `LlmProvider`
-  port; a single OpenAI-compatible adapter serves both hosted **OpenAI** and a
-  local **Ollama** model. Switching is an environment change — no code edits.
+port; a single OpenAI-compatible adapter serves both hosted **OpenAI** and a
+local **Ollama** model. Switching is an environment change — no code edits.
 - **Safe SQL execution.** LLM-generated SQL passes an application-level guardrail
-  that allows only a single read-only `SELECT`/`WITH` statement and blocks writes,
-  DDL, and file/system access before it ever reaches the query engine.
+that allows only a single read-only `SELECT`/`WITH` statement and blocks writes,
+DDL, and file/system access before it ever reaches the query engine.
 - **Cost & observability.** Every question records its provider, model, token
-  counts, estimated cost, and latency.
+counts, estimated cost, and latency.
 - **Ports & Adapters.** Business logic is framework-agnostic; PostgreSQL, DuckDB,
-  the filesystem, and the LLM are all adapters behind ports and can be swapped.
+the filesystem, and the LLM are all adapters behind ports and can be swapped.
 
 ## Tech stack
 
 - **Backend:** Node.js, TypeScript, Sails.js (thin HTTP runtime), PostgreSQL, DuckDB
 - **Frontend:** React, TypeScript, Vite (no extra runtime dependencies)
-- **Infrastructure:** Docker Compose (PostgreSQL + Ollama)
+- **Infrastructure:** Docker Compose (PostgreSQL, Ollama, optional full-stack app image)
 
 ## Prerequisites
 
-- Node.js >= 20
-- Docker (for PostgreSQL, and Ollama when using the local LLM)
+- **Docker** (recommended — runs everything with one command)
+- **Node.js >= 20** (only if developing on the host without Docker)
 
-## Setup & run
+## Quick start (Docker — recommended for reviewers)
 
-The backend serves the built frontend and the API from the same origin, so the
-whole app runs from one server.
+One command builds the frontend, starts the API + in-process worker, PostgreSQL,
+and Ollama (local LLM). On first boot the entrypoint pulls the Ollama model —
+this can take a few minutes.
 
 ```bash
-# 1. Start infrastructure — PostgreSQL (host port 5435) and Ollama (port 11434)
+docker compose up --build
+```
+
+Open **`http://localhost:1337`** for the UI and API (same origin).
+
+Optional: copy `.env.example` to `.env` in the repo root to override settings
+(e.g. `LLM_PROVIDER=openai` and `OPENAI_API_KEY=sk-...`).
+
+```bash
+cp .env.example .env   # edit as needed
+docker compose up --build
+```
+
+Stop and remove containers:
+
+```bash
+docker compose down
+```
+
+Equivalent npm scripts: `npm run docker:up` / `npm run docker:down`.
+
+## Local development (on the host)
+
+For active development with hot reload, run infrastructure in Docker and the app
+on the host:
+
+```bash
+# 1. Start PostgreSQL + Ollama only
 npm run db:up
 
-# 2. Install dependencies (backend + frontend) and configure the backend
+# 2. Install dependencies and configure the backend
 npm run setup
-cp backend/.env.example backend/.env   # DATABASE_URL already matches the compose port
+cp backend/.env.example backend/.env   # DATABASE_URL matches compose port 5435
 
-# 3. (Local LLM only) pull the model once — see "LLM configuration" below
+# 3. (Local LLM only) pull the model once if not already present
 docker compose exec ollama ollama pull qwen2.5-coder:1.5b
 
-# 4. Build the frontend + backend and start the server
+# 4. Build and start (or use dev servers below)
 npm start
 ```
 
 Open **`http://localhost:1337`** for the UI; the API is on the same origin under
-`/api`. `npm start` creates the DB schema and starts the background worker
-in-process, so this is the only command you need.
+`/api`.
 
 ### Frontend development (hot reload)
 
@@ -74,16 +101,20 @@ npm run dev:frontend   # UI on http://localhost:5173 (hot reload)
 
 ## LLM configuration
 
-The provider is chosen at boot from `backend/.env`. Switching is env-only.
+The provider is chosen at boot from environment variables. When using Docker,
+set them in a root `.env` file (see `.env.example`). For host development, use
+`backend/.env`. Switching is env-only.
 
-| Variable          | Purpose                                             | Default                       |
-| ----------------- | --------------------------------------------------- | ----------------------------- |
-| `LLM_PROVIDER`    | `openai` (hosted) or `local` (Ollama)               | `local`                       |
-| `OPENAI_API_KEY`  | Required when `LLM_PROVIDER=openai`                 | —                             |
-| `OPENAI_BASE_URL` | OpenAI-compatible base URL                          | `https://api.openai.com/v1`   |
-| `OPENAI_MODEL`    | Hosted model                                        | `gpt-4o-mini`                 |
-| `OLLAMA_BASE_URL` | Local Ollama OpenAI-compatible URL                  | `http://localhost:11434/v1`   |
-| `OLLAMA_MODEL`    | Local model                                         | `qwen2.5-coder:1.5b`          |
+
+| Variable          | Purpose                               | Default                     |
+| ----------------- | ------------------------------------- | --------------------------- |
+| `LLM_PROVIDER`    | `openai` (hosted) or `local` (Ollama) | `local`                     |
+| `OPENAI_API_KEY`  | Required when `LLM_PROVIDER=openai`   | —                           |
+| `OPENAI_BASE_URL` | OpenAI-compatible base URL            | `https://api.openai.com/v1` |
+| `OPENAI_MODEL`    | Hosted model                          | `gpt-4o-mini`               |
+| `OLLAMA_BASE_URL` | Local Ollama OpenAI-compatible URL    | `http://localhost:11434/v1` |
+| `OLLAMA_MODEL`    | Local model                           | `qwen2.5-coder:1.5b`        |
+
 
 **Local (default):** Ollama runs in Docker via `npm run db:up`. Pull a model once
 with `docker compose exec ollama ollama pull qwen2.5-coder:1.5b`. Under Docker on
@@ -98,16 +129,18 @@ question answering requires it.
 
 All endpoints are under the same origin as the UI.
 
-| Method & path            | Description                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `GET /health`            | Liveness check.                                                                   |
+
+| Method & path            | Description                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `GET /health`            | Liveness check.                                                                    |
 | `POST /api/datasets`     | Upload a CSV (`multipart/form-data`, field `file`). `202` with `{ dataset, job }`. |
-| `GET /api/datasets`      | List datasets (newest first).                                                     |
-| `GET /api/datasets/:id`  | Get one dataset; `metadata` holds the profiled schema + statistics once `READY`.  |
+| `GET /api/datasets`      | List datasets (newest first).                                                      |
+| `GET /api/datasets/:id`  | Get one dataset; `metadata` holds the profiled schema + statistics once `READY`.   |
 | `GET /api/jobs/:id`      | Get a background job's status.                                                     |
 | `POST /api/questions`    | Ask a question (`{ datasetId, question }`). `202` with `{ question, job }`.        |
-| `GET /api/questions`     | List questions with their answers (newest first).                                 |
-| `GET /api/questions/:id` | Get one question; poll until `status` is terminal.                                |
+| `GET /api/questions`     | List questions with their answers (newest first).                                  |
+| `GET /api/questions/:id` | Get one question; poll until `status` is terminal.                                 |
+
 
 Datasets move `PROCESSING → READY | FAILED`. Questions move
 `PROCESSING → ANSWERED | REFUSED | FAILED` (`REFUSED` = unanswerable from the data
@@ -177,7 +210,8 @@ path alias. The frontend is a plain React SPA (page-state navigation, a shared
 
 - **Automated tests** (guardrail, query engine, job processors are the priority).
 - **Parquet materialization at ingestion** — the query engine currently streams
-  the CSV per query via DuckDB `read_csv_auto`; writing a columnar copy on ingest
-  would speed up repeated queries and scale to larger files. The `QueryEngine`
-  port makes this a localized change.
+the CSV per query via DuckDB `read_csv_auto`; writing a columnar copy on ingest
+would speed up repeated queries and scale to larger files. The `QueryEngine`
+port makes this a localized change.
 - Authentication and pagination on the list endpoints.
+
