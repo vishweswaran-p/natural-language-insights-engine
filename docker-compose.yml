@@ -1,8 +1,9 @@
 # Compose stack for PostgreSQL, Ollama, and the application.
 #
 # Full stack (recommended — no Node/npm on the host):
-#   docker compose up --build
-#   Open http://localhost:1337 — UI, API, and in-process worker on one origin.
+#   docker compose up --build           # foreground (all services; Ctrl+C stops)
+#   docker compose up -d --build        # background; safe to close the terminal
+#   docker compose logs -f app          # follow app logs when running detached
 #
 # Infra only (host development with hot reload):
 #   docker compose up -d postgres ollama
@@ -15,6 +16,7 @@ services:
   postgres:
     image: postgres:16
     container_name: insights-postgres
+    command: ["postgres", "-c", "log_min_messages=warning"]
     environment:
       POSTGRES_DB: insights
       POSTGRES_USER: insights

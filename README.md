@@ -30,8 +30,6 @@ For system design, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. For HTT
 
 ![Ask a question and view the answer](docs/demo/ask-question.gif)
 
-
-
 ## How to run it
 
 ### Quick start (Docker)
@@ -42,7 +40,16 @@ docker compose up --build
 
 Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local LLM model is downloaded.
 
+After startup the app is quiet until you upload a dataset or ask a question — that is expected.
+
 Stop: `docker compose down`
+
+To run in the background (close the terminal and keep the app running):
+
+```bash
+docker compose up -d --build
+docker compose logs -f app   # optional: follow app logs
+```
 
 
 

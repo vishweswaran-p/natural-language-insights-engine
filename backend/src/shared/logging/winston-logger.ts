@@ -14,7 +14,9 @@ export function createWinstonLogger(defaultMeta: LogMetadata = {}): Logger {
       winston.format.errors({ stack: true }),
       winston.format.printf((info) => formatLine(info)),
     ),
-    transports: [new winston.transports.Console()],
+    // Write directly to stdout so Docker Compose captures logs immediately
+    // (Console transport can buffer when stdout is not a TTY).
+    transports: [new winston.transports.Stream({ stream: process.stdout })],
   });
 
   return wrap(winstonLogger);

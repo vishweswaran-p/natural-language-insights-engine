@@ -18,7 +18,8 @@ if [ "$PROVIDER" = "local" ]; then
   done
 
   echo ">> Pulling Ollama model '${MODEL}' (first run may take several minutes)..."
-  curl -sf -X POST "${OLLAMA_HOST}/api/pull" -d "{\"name\":\"${MODEL}\"}" -o /dev/null
+  curl -N -X POST "${OLLAMA_HOST}/api/pull" -d "{\"name\":\"${MODEL}\"}"
+  echo ""
   echo ">> Model ready."
 fi
 
