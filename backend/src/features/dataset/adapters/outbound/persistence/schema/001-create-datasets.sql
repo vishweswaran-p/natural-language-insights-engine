@@ -14,4 +14,5 @@ CREATE TABLE IF NOT EXISTS datasets (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_datasets_status ON datasets (status);
+-- List datasets newest-first (GET /api/datasets).
+CREATE INDEX IF NOT EXISTS idx_datasets_created_at ON datasets (created_at DESC);

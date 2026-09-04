@@ -27,5 +27,8 @@ CREATE TABLE IF NOT EXISTS questions (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- List questions newest-first (GET /api/questions).
+CREATE INDEX IF NOT EXISTS idx_questions_created_at ON questions (created_at DESC);
+
+-- FK lookups when a dataset is deleted (ON DELETE CASCADE).
 CREATE INDEX IF NOT EXISTS idx_questions_dataset_id ON questions (dataset_id);
-CREATE INDEX IF NOT EXISTS idx_questions_created_at ON questions (created_at);

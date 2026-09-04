@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Supports the claim query (oldest QUEUED first) and dataset-scoped lookups.
+-- Claim the oldest QUEUED job (worker poll).
 CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs (status, created_at);
+
+-- FK lookups when a dataset is deleted (ON DELETE CASCADE).
 CREATE INDEX IF NOT EXISTS idx_jobs_dataset_id ON jobs (dataset_id);
+
+-- Stale-job recovery: RUNNING jobs older than a threshold.
+CREATE INDEX IF NOT EXISTS idx_jobs_running_started_at ON jobs (started_at) WHERE status = 'RUNNING';
