@@ -5,21 +5,20 @@ import type { LlmProviderName, LlmSettings } from '../types/llm-settings';
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSaved: (message: string) => void;
 }
 
-export function LlmSettingsModal({ open, onClose }: Props) {
+export function LlmSettingsModal({ open, onClose, onSaved }: Props) {
   const [settings, setSettings] = useState<LlmSettings | null>(null);
   const [provider, setProvider] = useState<LlmProviderName>('local');
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setSaved(false);
     setApiKey('');
     setLoading(true);
     getLlmSettings()
@@ -38,16 +37,14 @@ export function LlmSettingsModal({ open, onClose }: Props) {
   async function handleSave() {
     setSaving(true);
     setError(null);
-    setSaved(false);
     try {
       const updated = await updateLlmSettings({
         provider,
         ...(provider === 'openai' && apiKey.trim() ? { openaiApiKey: apiKey.trim() } : {}),
       });
-      setSettings(updated);
-      setProvider(updated.provider);
-      setApiKey('');
-      setSaved(true);
+      const label = updated.provider === 'openai' ? 'OpenAI' : 'Local (Ollama)';
+      onSaved(`LLM settings saved. New questions will use ${label} (${updated.model}).`);
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings.');
     } finally {
@@ -136,10 +133,6 @@ export function LlmSettingsModal({ open, onClose }: Props) {
               <div className="banner banner-error" role="alert">
                 {error}
               </div>
-            )}
-
-            {saved && (
-              <div className="banner banner-info">Settings saved. New questions will use this provider.</div>
             )}
 
             <div className="modal-actions">

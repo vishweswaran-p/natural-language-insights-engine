@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Page } from '../App';
 import { LlmSettingsModal } from './LlmSettingsModal';
 
@@ -9,6 +9,13 @@ interface Props {
 
 export function AppHeader({ page, onNavigate }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = window.setTimeout(() => setSuccessMessage(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [successMessage]);
 
   return (
     <>
@@ -43,7 +50,16 @@ export function AppHeader({ page, onNavigate }: Props) {
           </nav>
         </div>
       </header>
-      <LlmSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {successMessage && (
+        <div className="app-toast" role="status">
+          {successMessage}
+        </div>
+      )}
+      <LlmSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={setSuccessMessage}
+      />
     </>
   );
 }
