@@ -6,6 +6,20 @@ executes it with DuckDB, and returns a summarized answer.
 
 For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
+## Prerequisites
+
+**Docker (recommended):** Docker and Docker Compose.
+
+**Host development:** Node.js 20+, npm, and Docker (for PostgreSQL and Ollama).
+
+## Stack
+
+- **Backend:** Node.js, TypeScript, Sails
+- **Frontend:** React, Vite, TypeScript
+- **Data:** PostgreSQL (metadata + job queue), DuckDB (CSV profiling and queries)
+- **LLM:** OpenAI or Ollama (local)
+- **Infra:** Docker Compose
+
 ## Demo
 
 **Upload and profile a CSV** (UCI Online Retail → Ready):
@@ -41,6 +55,8 @@ npm run dev:frontend   # http://localhost:5173
 ```
 
 Stop infra: `npm run db:down`
+
+Run tests: `npm test`
 
 ## How to configure it
 
