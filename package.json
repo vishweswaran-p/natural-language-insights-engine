@@ -14,9 +14,9 @@
     "start:backend": "npm --prefix backend run start",
     "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
     "test": "npm --prefix backend run test",
-    "docker:up": "docker compose --profile full up --build",
-    "docker:down": "docker compose --profile full down",
-    "db:up": "docker compose up -d",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "db:up": "docker compose up -d postgres ollama",
     "db:down": "docker compose down"
   },
   "engines": {

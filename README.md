@@ -8,7 +8,7 @@ For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.
 
 ## Prerequisites
 
-**Docker (recommended):** Docker and Docker Compose.
+**Docker (recommended):** Docker and Docker Compose only.
 
 **Host development:** Node.js 20+, npm, and Docker (for PostgreSQL and Ollama).
 
@@ -35,18 +35,20 @@ For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.
 ### Quick start (Docker)
 
 ```bash
-npm run docker:up
+docker compose up --build
 ```
 
 Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local
 LLM model is downloaded.
 
-Stop: `npm run docker:down`
+Stop: `docker compose down`
 
 ### Development (host)
 
+Requires Node.js and npm. Start only the backing services in Docker:
+
 ```bash
-npm run db:up
+docker compose up -d postgres ollama
 npm run setup
 cp backend/.env.example backend/.env
 docker compose exec ollama ollama pull qwen2.5-coder:1.5b   # once, if using local LLM
@@ -54,7 +56,7 @@ npm run dev:backend    # http://localhost:1337
 npm run dev:frontend   # http://localhost:5173
 ```
 
-Stop infra: `npm run db:down`
+Stop infra: `docker compose down`
 
 Run tests: `npm test`
 
