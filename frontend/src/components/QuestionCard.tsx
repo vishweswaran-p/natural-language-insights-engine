@@ -18,13 +18,24 @@ export function QuestionCard({ question: initial, datasetName, defaultOpen = fal
 
   return (
     <article className="panel question-card">
-      <button
-        type="button"
+      <div
         className="question-card-head"
+        role="button"
+        tabIndex={0}
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setOpen((prev) => !prev);
+          }
+        }}
       >
-        <div className="question-card-heading">
+        <div
+          className="question-card-heading"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <p className="question-text">"{question.question}"</p>
           <p className="muted question-meta">
             {datasetName ?? 'Unknown dataset'} · {formatDate(question.createdAt)}
@@ -34,7 +45,7 @@ export function QuestionCard({ question: initial, datasetName, defaultOpen = fal
           <QuestionStatusBadge status={question.status} />
           <span className={`chevron${open ? ' chevron-open' : ''}`} aria-hidden="true" />
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="question-card-body">

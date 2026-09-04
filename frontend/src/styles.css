@@ -694,6 +694,9 @@ textarea {
 
 .question-card-heading {
   min-width: 0;
+  flex: 1;
+  user-select: text;
+  cursor: text;
 }
 
 .question-card-head-right {
@@ -727,6 +730,7 @@ textarea {
   font-weight: 500;
   font-style: italic;
   word-break: break-word;
+  user-select: text;
 }
 
 .question-meta {
