@@ -1,9 +1,10 @@
 import { getRoutes as datasetRoutes } from '@app/features/dataset/adapters/inbound/http/routes';
 import { getRoutes as healthRoutes } from '@app/features/health/adapters/inbound/http/routes';
 import { getRoutes as questionRoutes } from '@app/features/question/adapters/inbound/http/routes';
+import { getRoutes as settingsRoutes } from '@app/features/settings/adapters/inbound/http/routes';
 import { toSailsRoutes } from '@app/shared/http';
 
-const routes = [...healthRoutes(), ...datasetRoutes(), ...questionRoutes()];
+const routes = [...healthRoutes(), ...settingsRoutes(), ...datasetRoutes(), ...questionRoutes()];
 
 export = {
   routes: toSailsRoutes(routes),

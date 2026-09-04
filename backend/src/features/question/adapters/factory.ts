@@ -1,6 +1,5 @@
 import { getPool } from '@app/shared/persistence/postgres/postgres-client';
 import { makeDatasetQuery, makeJobQueue } from '@app/features/dataset/adapters/factory';
-import type { LlmProvider } from '@app/features/question/application/ports/llm-provider';
 import type { QueryEngine } from '@app/features/question/application/ports/query-engine';
 import { AskQuestionUseCase } from '@app/features/question/application/use-cases/ask-question.use-case';
 import { GetQuestionUseCase } from '@app/features/question/application/use-cases/get-question.use-case';
@@ -17,7 +16,6 @@ import { DuckDbQueryEngine } from '@app/features/question/adapters/outbound/quer
 const questionCommand = (): PgQuestionCommand => new PgQuestionCommand(getPool());
 const questionQuery = (): PgQuestionQuery => new PgQuestionQuery(getPool());
 
-const makeLlmProvider = (): LlmProvider => new OpenAiCompatibleLlmProvider(resolveLlmConfig());
 const makeQueryEngine = (): QueryEngine => new DuckDbQueryEngine();
 
 export function makeAskQuestionUseCase(): AskQuestionUseCase {
@@ -33,5 +31,11 @@ export function makeGetQuestionUseCase(): GetQuestionUseCase {
 }
 
 export function makeQueryJobProcessor(): QueryJobProcessor {
-  return new QueryJobProcessor(questionQuery(), questionCommand(), makeDatasetQuery(), makeLlmProvider(), makeQueryEngine());
+  return new QueryJobProcessor(
+    questionQuery(),
+    questionCommand(),
+    makeDatasetQuery(),
+    () => new OpenAiCompatibleLlmProvider(resolveLlmConfig()),
+    makeQueryEngine(),
+  );
 }

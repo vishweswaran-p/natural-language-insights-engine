@@ -38,8 +38,7 @@ For system design (components, data flow, trade-offs), see **[docs/ARCHITECTURE.
 docker compose up --build
 ```
 
-Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local
-LLM model is downloaded.
+Open **[http://localhost:1337](http://localhost:1337)**. First boot may take a few minutes while the local LLM model is downloaded.
 
 Stop: `docker compose down`
 
@@ -77,6 +76,8 @@ Run tests: `npm test`
 
 Dataset upload works without an API key; answering questions requires a configured LLM.
 
+Use **LLM** in the header to switch between local Ollama and OpenAI at runtime (paste an API key for OpenAI). Settings apply immediately without restarting Docker.
+
 ## How to ask it a question
 
 ### UI
@@ -85,6 +86,8 @@ Dataset upload works without an API key; answering questions requires a configur
 2. Upload a `.csv` file (up to 200 MB) and wait until the dataset status is **READY**
 3. Select the dataset, type a question (e.g. *What are the top 10 products by revenue?*), and submit
 4. Wait until the answer appears (the UI polls automatically)
+
+
 
 ### API
 

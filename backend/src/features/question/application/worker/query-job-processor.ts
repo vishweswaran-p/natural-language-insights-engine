@@ -22,7 +22,7 @@ export class QueryJobProcessor implements JobProcessor {
     private readonly questionQuery: QuestionQuery,
     private readonly questionCommand: QuestionCommand,
     private readonly datasetQuery: DatasetQuery,
-    private readonly llm: LlmProvider,
+    private readonly llmFactory: () => LlmProvider,
     private readonly queryEngine: QueryEngine,
   ) {}
 
@@ -54,12 +54,13 @@ export class QueryJobProcessor implements JobProcessor {
       columns: dataset.metadata.columns.map((c) => ({ name: c.name, type: c.type })),
     };
 
+    const llm = this.llmFactory();
     log.info('Answering question', {
       jobId: job.id,
       questionId,
       datasetId: dataset.id,
       datasetFilename: dataset.filename,
-      llm: this.llm.name,
+      llm: llm.name,
       question: truncate(question.question, 120),
       rowCount: schema.rowCount,
       columnCount: schema.columns.length,
@@ -69,7 +70,7 @@ export class QueryJobProcessor implements JobProcessor {
     // 1. Question -> SQL (or an explicit refusal).
     let generation;
     try {
-      generation = await this.llm.generateSql({ question: question.question, schema });
+      generation = await llm.generateSql({ question: question.question, schema });
     } catch (err) {
       log.error('LLM SQL generation failed', { jobId: job.id, questionId, err });
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
@@ -132,7 +133,7 @@ export class QueryJobProcessor implements JobProcessor {
     let usage = generation.usage;
     let summary: string;
     try {
-      const summarized = await this.llm.summarize({ question: question.question, columns: result.columns, rows: result.rows });
+      const summarized = await llm.summarize({ question: question.question, columns: result.columns, rows: result.rows });
       summary = summarized.text;
       usage = combineUsage(generation.usage, summarized.usage);
       log.info('Summary generated', { jobId: job.id, questionId, ...usageFields(summarized.usage) });

@@ -1,7 +1,10 @@
-// Resolves the active LLM configuration from the environment. `LLM_PROVIDER`
-// selects the preset; both presets are OpenAI-compatible (OpenAI hosted, or
-// Ollama locally), so a single adapter serves both. Switching providers is
-// entirely an env change — the question layer is unaffected.
+import {
+  getLlmRuntimeSettings,
+  resolveOpenAiApiKey,
+} from '@app/shared/runtime/llm-runtime-settings';
+// Resolves the active LLM configuration. Runtime UI overrides take precedence,
+// then environment variables. Both presets are OpenAI-compatible (OpenAI hosted
+// or Ollama locally), so a single adapter serves both.
 
 export type LlmProviderName = 'openai' | 'local';
 
@@ -27,17 +30,15 @@ const OPENAI_PRICING: Record<string, TokenPricing> = {
 };
 
 export function resolveLlmConfig(): LlmConfig {
-  const provider = (process.env.LLM_PROVIDER ?? 'local') as LlmProviderName;
+  const runtime = getLlmRuntimeSettings();
+  const provider = (runtime?.provider ?? process.env.LLM_PROVIDER ?? 'local') as LlmProviderName;
 
   if (provider === 'openai') {
-    // A missing key is not fatal at boot — the app (and dataset ingestion) still
-    // start. The adapter checks for it at call time so only question-answering
-    // fails, with a clear message, when the key is absent.
     const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
     return {
       provider,
       baseUrl: process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-      apiKey: process.env.OPENAI_API_KEY ?? '',
+      apiKey: resolveOpenAiApiKey(),
       model,
       pricing: OPENAI_PRICING[model] ?? null,
     };
