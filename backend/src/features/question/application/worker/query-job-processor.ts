@@ -7,6 +7,7 @@ import type { DatasetSchema, LlmProvider } from '@app/features/question/applicat
 import type { QueryEngine } from '@app/features/question/application/ports/query-engine';
 import type { QuestionCommand } from '@app/features/question/application/ports/question.command';
 import type { QuestionQuery } from '@app/features/question/application/ports/question.query';
+import { datasetSchemaFromMetadata } from '@app/features/question/application/sql-schema-context';
 import { getLogger } from '@app/shared/logging';
 
 const log = getLogger('query-processor');
@@ -48,11 +49,7 @@ export class QueryJobProcessor implements JobProcessor {
       });
     }
 
-    const schema: DatasetSchema = {
-      table: 'dataset',
-      rowCount: dataset.metadata.dataset.rowCount,
-      columns: dataset.metadata.columns.map((c) => ({ name: c.name, type: c.type })),
-    };
+    const schema = datasetSchemaFromMetadata(dataset.metadata);
 
     const llm = this.llmFactory();
     log.info('Answering question', {
@@ -111,14 +108,32 @@ export class QueryJobProcessor implements JobProcessor {
 
     log.debug('SQL passed guardrail', { jobId: job.id, questionId, sql: truncate(sql, 200) });
 
-    // 3. Execute against the real data — the answer is grounded in these rows.
+    // 3. Execute against the real data — retry once with LLM repair on DuckDB errors.
+    let usage = generation.usage;
     let result;
     const queryStartedAt = Date.now();
     try {
-      result = await this.queryEngine.run(dataset.storagePath, sql);
+      const executed = await executeSqlWithRepair({
+        llm,
+        question: question.question,
+        schema,
+        storagePath: dataset.storagePath,
+        sql,
+        usage,
+        onSqlUpdate: async (nextSql, nextUsage) => {
+          sql = nextSql;
+          usage = nextUsage;
+          await this.questionCommand.saveGeneration(questionId, sql, usage);
+        },
+        queryEngine: this.queryEngine,
+        logContext: { jobId: job.id, questionId },
+      });
+      sql = executed.sql;
+      usage = executed.usage;
+      result = executed.result;
     } catch (err) {
       log.error('Query execution failed', { jobId: job.id, questionId, sql: truncate(sql, 200), err });
-      await this.questionCommand.saveGeneration(questionId, sql, generation.usage);
+      await this.questionCommand.saveGeneration(questionId, sql, usage);
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
 
@@ -131,12 +146,11 @@ export class QueryJobProcessor implements JobProcessor {
     });
 
     // 4. Summarize the result rows (best-effort; a summary failure must not lose the answer).
-    let usage = generation.usage;
     let summary: string;
     try {
       const summarized = await llm.summarize({ question: question.question, columns: result.columns, rows: result.rows });
       summary = summarized.text;
-      usage = combineUsage(generation.usage, summarized.usage);
+      usage = combineUsage(usage, summarized.usage);
       log.info('Summary generated', { jobId: job.id, questionId, ...usageFields(summarized.usage) });
     } catch (err) {
       log.warn('Summary generation failed; continuing with row count only', { jobId: job.id, questionId, err });
@@ -171,6 +185,74 @@ export class QueryJobProcessor implements JobProcessor {
 function questionIdOf(job: Job): string | null {
   const payload = job.payload as { questionId?: unknown } | null;
   return payload && typeof payload.questionId === 'string' ? payload.questionId : null;
+}
+
+async function executeSqlWithRepair({
+  llm,
+  question,
+  schema,
+  storagePath,
+  sql,
+  usage,
+  onSqlUpdate,
+  queryEngine,
+  logContext,
+}: {
+  llm: LlmProvider;
+  question: string;
+  schema: DatasetSchema;
+  storagePath: string;
+  sql: string;
+  usage: LlmUsage;
+  onSqlUpdate: (sql: string, usage: LlmUsage) => Promise<void>;
+  queryEngine: QueryEngine;
+  logContext: { jobId: string; questionId: string };
+}): Promise<{ sql: string; usage: LlmUsage; result: Awaited<ReturnType<QueryEngine['run']>> }> {
+  try {
+    const result = await queryEngine.run(storagePath, sql);
+    return { sql, usage, result };
+  } catch (firstErr) {
+    const errorMessage = firstErr instanceof Error ? firstErr.message : String(firstErr);
+    log.warn('Query execution failed; attempting one SQL repair', {
+      ...logContext,
+      sql: truncate(sql, 200),
+      err: firstErr,
+    });
+
+    let repair;
+    try {
+      repair = await llm.repairSql({ question, schema, failedSql: sql, errorMessage });
+    } catch {
+      throw firstErr;
+    }
+
+    const repairedUsage = combineUsage(usage, repair.usage);
+    if (!repair.answerable || !repair.sql) {
+      throw firstErr;
+    }
+
+    let repairedSql: string;
+    try {
+      repairedSql = validateReadOnlySql(repair.sql);
+    } catch (err) {
+      if (err instanceof GuardrailError) throw firstErr;
+      throw err;
+    }
+
+    await onSqlUpdate(repairedSql, repairedUsage);
+
+    try {
+      const result = await queryEngine.run(storagePath, repairedSql);
+      log.info('Query executed after SQL repair', {
+        ...logContext,
+        sql: truncate(repairedSql, 200),
+        ...usageFields(repairedUsage),
+      });
+      return { sql: repairedSql, usage: repairedUsage, result };
+    } catch (retryErr) {
+      throw retryErr;
+    }
+  }
 }
 
 function combineUsage(a: LlmUsage, b: LlmUsage): LlmUsage {

@@ -1,6 +1,7 @@
 import type { DatasetSchema, LlmProvider, SqlGeneration, Summary } from '@app/features/question/application/ports/llm-provider';
 import type { LlmUsage } from '@app/features/question/application/domain/question';
 import type { Primitive } from '@app/features/dataset/application/domain/dataset-metadata';
+import { formatSchemaForPrompt } from '@app/features/question/application/sql-schema-context';
 import type { LlmConfig } from './llm-config';
 
 // Single adapter for any OpenAI-compatible Chat Completions API (OpenAI hosted
@@ -29,6 +30,29 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
       [
         { role: 'system', content: SQL_SYSTEM_PROMPT },
         { role: 'user', content: buildSqlPrompt(question, schema) },
+      ],
+      true,
+    );
+
+    const parsed = parseSqlResponse(content);
+    return { ...parsed, usage: this.toUsage(usage, latencyMs) };
+  }
+
+  async repairSql({
+    question,
+    schema,
+    failedSql,
+    errorMessage,
+  }: {
+    question: string;
+    schema: DatasetSchema;
+    failedSql: string;
+    errorMessage: string;
+  }): Promise<SqlGeneration> {
+    const { content, usage, latencyMs } = await this.chat(
+      [
+        { role: 'system', content: SQL_SYSTEM_PROMPT },
+        { role: 'user', content: buildSqlRepairPrompt(question, schema, failedSql, errorMessage) },
       ],
       true,
     );
@@ -145,6 +169,10 @@ const SQL_SYSTEM_PROMPT = [
   '- For questions needing both a minimum and maximum (or two extremes), prefer a CTE that aggregates once, then join or filter to MIN and MAX values instead of a fragile UNION of two limited subqueries.',
   '- Integer division truncates: cast to DOUBLE before dividing when a decimal ratio or average is required.',
   '- Use TRY_CAST for safe conversions; account for NULLs when they affect filters or comparisons.',
+  '- Do not nest aggregate functions (e.g. MIN inside another aggregate FILTER). Use CTEs or window functions instead.',
+  '- For percentiles use quantile_cont(column, 0.95); for median use median(column) or quantile_cont(column, 0.5).',
+  '- Do not use PostgreSQL-only syntax such as PERCENTILE_CONT(...) WITHIN GROUP unless rewritten as quantile_cont.',
+  '- When SELECT mixes a scalar with COUNT(*), GROUP BY the scalar or use subqueries.',
   '',
   'Query design:',
   '- Answer the question directly; use clear, descriptive column aliases.',
@@ -167,8 +195,33 @@ const SUMMARY_SYSTEM_PROMPT = [
 ].join('\n');
 
 function buildSqlPrompt(question: string, schema: DatasetSchema): string {
-  const columns = schema.columns.map((c) => `- "${c.name}" (${c.type})`).join('\n');
-  return `Table: ${schema.table} (${schema.rowCount} rows)\nColumns:\n${columns}\n\n<question>\n${question}\n</question>`;
+  return `${formatSchemaForPrompt(schema)}\n\n<question>\n${question}\n</question>`;
+}
+
+function buildSqlRepairPrompt(
+  question: string,
+  schema: DatasetSchema,
+  failedSql: string,
+  errorMessage: string,
+): string {
+  return [
+    formatSchemaForPrompt(schema),
+    '',
+    '<question>',
+    question,
+    '</question>',
+    '',
+    'The SQL below failed in DuckDB. Return corrected SQL for the same question.',
+    'Fix only what is needed; keep the query read-only and valid DuckDB.',
+    '',
+    '<failed_sql>',
+    failedSql,
+    '</failed_sql>',
+    '',
+    '<duckdb_error>',
+    errorMessage.slice(0, 1500),
+    '</duckdb_error>',
+  ].join('\n');
 }
 
 function buildSummaryPrompt(question: string, columns: string[], rows: Primitive[][]): string {
