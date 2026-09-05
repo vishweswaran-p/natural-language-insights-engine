@@ -4,7 +4,7 @@ import type { LlmUsage, Question, QuestionAnswer, QuestionStatus } from '@app/fe
 // Column list and row -> domain mapping shared by the question query/command adapters.
 
 export const QUESTION_COLUMNS =
-  'id, dataset_id, question, status, generated_sql, answer, refusal_reason, error_message, ' +
+  'id, dataset_id, question, status, generated_sql, generate_sql_prompt, summarize_prompt, answer, refusal_reason, error_message, ' +
   'llm_provider, llm_model, prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd, latency_ms, ' +
   'created_at, updated_at';
 
@@ -15,6 +15,8 @@ export function toQuestion(row: QueryResultRow): Question {
     question: row.question,
     status: row.status as QuestionStatus,
     generatedSql: row.generated_sql ?? null,
+    generateSqlPrompt: row.generate_sql_prompt ?? null,
+    summarizePrompt: row.summarize_prompt ?? null,
     answer: (row.answer as QuestionAnswer | null) ?? null,
     refusalReason: row.refusal_reason ?? null,
     errorMessage: row.error_message ?? null,

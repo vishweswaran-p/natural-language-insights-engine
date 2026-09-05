@@ -38,6 +38,8 @@ export interface Question {
   question: string;
   status: QuestionStatus;
   generatedSql: string | null;
+  generateSqlPrompt: string | null;
+  summarizePrompt: string | null;
   answer: QuestionAnswer | null;
   refusalReason: string | null;
   errorMessage: string | null;

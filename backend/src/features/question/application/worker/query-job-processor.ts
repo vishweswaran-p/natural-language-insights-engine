@@ -83,7 +83,7 @@ export class QueryJobProcessor implements JobProcessor {
 
     if (!generation.answerable || !generation.sql) {
       const reason = generation.refusalReason ?? 'The question cannot be answered from this dataset.';
-      await this.questionCommand.markRefused(questionId, reason, generation.usage);
+      await this.questionCommand.markRefused(questionId, reason, generation.usage, null, generation.generateSqlPrompt);
       log.info('Question refused by LLM', { jobId: job.id, questionId, reason, ...usageFields(generation.usage) });
       return;
     }
@@ -94,7 +94,13 @@ export class QueryJobProcessor implements JobProcessor {
       sql = validateReadOnlySql(generation.sql);
     } catch (err) {
       if (err instanceof GuardrailError) {
-        await this.questionCommand.markRefused(questionId, err.message, generation.usage, generation.sql);
+        await this.questionCommand.markRefused(
+          questionId,
+          err.message,
+          generation.usage,
+          generation.sql,
+          generation.generateSqlPrompt,
+        );
         log.warn('Question refused by SQL guardrail', {
           jobId: job.id,
           questionId,
@@ -110,6 +116,7 @@ export class QueryJobProcessor implements JobProcessor {
 
     // 3. Execute against the real data — retry once with LLM repair on DuckDB errors.
     let usage = generation.usage;
+    const generateSqlPrompt = generation.generateSqlPrompt;
     let result;
     const queryStartedAt = Date.now();
     try {
@@ -123,7 +130,7 @@ export class QueryJobProcessor implements JobProcessor {
         onSqlUpdate: async (nextSql, nextUsage) => {
           sql = nextSql;
           usage = nextUsage;
-          await this.questionCommand.saveGeneration(questionId, sql, usage);
+          await this.questionCommand.saveGeneration(questionId, sql, usage, generateSqlPrompt);
         },
         queryEngine: this.queryEngine,
         logContext: { jobId: job.id, questionId },
@@ -133,7 +140,7 @@ export class QueryJobProcessor implements JobProcessor {
       result = executed.result;
     } catch (err) {
       log.error('Query execution failed', { jobId: job.id, questionId, sql: truncate(sql, 200), err });
-      await this.questionCommand.saveGeneration(questionId, sql, usage);
+      await this.questionCommand.saveGeneration(questionId, sql, usage, generateSqlPrompt);
       throw new ProcessingError(SAFE_ERROR_MESSAGE, { cause: err });
     }
 
@@ -147,9 +154,11 @@ export class QueryJobProcessor implements JobProcessor {
 
     // 4. Summarize the result rows (best-effort; a summary failure must not lose the answer).
     let summary: string;
+    let summarizePrompt: string | null = null;
     try {
       const summarized = await llm.summarize({ question: question.question, columns: result.columns, rows: result.rows });
       summary = summarized.text;
+      summarizePrompt = summarized.summarizePrompt;
       usage = combineUsage(usage, summarized.usage);
       log.info('Summary generated', { jobId: job.id, questionId, ...usageFields(summarized.usage) });
     } catch (err) {
@@ -159,6 +168,8 @@ export class QueryJobProcessor implements JobProcessor {
 
     await this.questionCommand.markAnswered(questionId, {
       generatedSql: sql,
+      generateSqlPrompt,
+      summarizePrompt,
       answer: { columns: result.columns, rows: result.rows, rowCount: result.rows.length, summary },
       usage,
     });

@@ -1,7 +1,11 @@
 import type { DatasetSchema, LlmProvider, SqlGeneration, Summary } from '@app/features/question/application/ports/llm-provider';
 import type { LlmUsage } from '@app/features/question/application/domain/question';
 import type { Primitive } from '@app/features/dataset/application/domain/dataset-metadata';
-import { formatSchemaForPrompt } from '@app/features/question/application/sql-schema-context';
+import {
+  buildGenerateSqlPrompt,
+  buildSqlRepairPrompt,
+  buildSummarizePrompt,
+} from '@app/features/question/application/llm-prompts';
 import type { LlmConfig } from './llm-config';
 
 // Single adapter for any OpenAI-compatible Chat Completions API (OpenAI hosted
@@ -9,7 +13,6 @@ import type { LlmConfig } from './llm-config';
 // layer sees only the LlmProvider port.
 
 const REQUEST_TIMEOUT_MS = 120_000; // local models can be slow, especially cold
-const MAX_SUMMARY_ROWS = 50; // cap rows sent to the summarizer to bound prompt size
 
 type ChatMessage = { role: 'system' | 'user'; content: string };
 
@@ -26,16 +29,17 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
   }
 
   async generateSql({ question, schema }: { question: string; schema: DatasetSchema }): Promise<SqlGeneration> {
+    const generateSqlPrompt = buildGenerateSqlPrompt(question, schema);
     const { content, usage, latencyMs } = await this.chat(
       [
         { role: 'system', content: SQL_SYSTEM_PROMPT },
-        { role: 'user', content: buildSqlPrompt(question, schema) },
+        { role: 'user', content: generateSqlPrompt },
       ],
       true,
     );
 
     const parsed = parseSqlResponse(content);
-    return { ...parsed, usage: this.toUsage(usage, latencyMs) };
+    return { ...parsed, usage: this.toUsage(usage, latencyMs), generateSqlPrompt };
   }
 
   async repairSql({
@@ -58,7 +62,7 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
     );
 
     const parsed = parseSqlResponse(content);
-    return { ...parsed, usage: this.toUsage(usage, latencyMs) };
+    return { ...parsed, usage: this.toUsage(usage, latencyMs), generateSqlPrompt: null };
   }
 
   async summarize({
@@ -70,15 +74,16 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
     columns: string[];
     rows: Primitive[][];
   }): Promise<Summary> {
+    const summarizePrompt = buildSummarizePrompt(question, columns, rows);
     const { content, usage, latencyMs } = await this.chat(
       [
         { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
-        { role: 'user', content: buildSummaryPrompt(question, columns, rows) },
+        { role: 'user', content: summarizePrompt },
       ],
       false,
     );
 
-    return { text: content.trim(), usage: this.toUsage(usage, latencyMs) };
+    return { text: content.trim(), usage: this.toUsage(usage, latencyMs), summarizePrompt };
   }
 
   // One Chat Completions round-trip. Temperature 0 for deterministic output.
@@ -193,46 +198,6 @@ const SUMMARY_SYSTEM_PROMPT = [
   '- Large numbers: keep the value but add thousands separators (e.g. a value of 1234567 is written 1,234,567).',
   '- Leave names, identifiers, and categorical labels exactly as given.',
 ].join('\n');
-
-function buildSqlPrompt(question: string, schema: DatasetSchema): string {
-  return `${formatSchemaForPrompt(schema)}\n\n<question>\n${question}\n</question>`;
-}
-
-function buildSqlRepairPrompt(
-  question: string,
-  schema: DatasetSchema,
-  failedSql: string,
-  errorMessage: string,
-): string {
-  return [
-    formatSchemaForPrompt(schema),
-    '',
-    '<question>',
-    question,
-    '</question>',
-    '',
-    'The SQL below failed in DuckDB. Return corrected SQL for the same question.',
-    'Fix only what is needed; keep the query read-only and valid DuckDB.',
-    '',
-    '<failed_sql>',
-    failedSql,
-    '</failed_sql>',
-    '',
-    '<duckdb_error>',
-    errorMessage.slice(0, 1500),
-    '</duckdb_error>',
-  ].join('\n');
-}
-
-function buildSummaryPrompt(question: string, columns: string[], rows: Primitive[][]): string {
-  const preview = rows.slice(0, MAX_SUMMARY_ROWS);
-  return [
-    `Question: ${question}`,
-    `Result columns: ${JSON.stringify(columns)}`,
-    `Rows (JSON, up to ${MAX_SUMMARY_ROWS}): ${JSON.stringify(preview)}`,
-    'Write a short natural-language answer.',
-  ].join('\n');
-}
 
 // Parse the model's JSON. Anything unparseable becomes a refusal — we never
 // fabricate an answer from a malformed response.

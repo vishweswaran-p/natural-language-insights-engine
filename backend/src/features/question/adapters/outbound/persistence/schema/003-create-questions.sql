@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS questions (
 
   -- Outcome (exactly one branch is populated once processing finishes).
   generated_sql      TEXT,           -- the SQL the LLM produced and we executed
+  generate_sql_prompt TEXT,          -- user prompt sent for text-to-SQL
+  summarize_prompt   TEXT,           -- user prompt sent for answer summarization
   answer             JSONB,          -- { columns, rows, rowCount, summary }
   refusal_reason     TEXT,           -- set when status = REFUSED
   error_message      TEXT,           -- set when status = FAILED

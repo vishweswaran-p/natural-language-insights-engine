@@ -1,10 +1,24 @@
 import type { Question } from '../types/question';
 
 export function QuestionProvenance({ question }: { question: Question }) {
-  if (!question.generatedSql && !question.usage) return null;
+  if (!question.generatedSql && !question.generateSqlPrompt && !question.summarizePrompt && !question.usage) {
+    return null;
+  }
 
   return (
     <div className="question-provenance">
+      {question.generateSqlPrompt && (
+        <details className="sql-details">
+          <summary>View generate SQL prompt</summary>
+          <pre className="sql-code">{question.generateSqlPrompt}</pre>
+        </details>
+      )}
+      {question.summarizePrompt && (
+        <details className="sql-details">
+          <summary>View summarize prompt</summary>
+          <pre className="sql-code">{question.summarizePrompt}</pre>
+        </details>
+      )}
       {question.generatedSql && (
         <details className="sql-details">
           <summary>View generated SQL</summary>

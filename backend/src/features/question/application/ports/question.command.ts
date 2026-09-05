@@ -9,6 +9,8 @@ export interface NewQuestion {
 
 export interface AnsweredResult {
   generatedSql: string;
+  generateSqlPrompt: string | null;
+  summarizePrompt: string | null;
   answer: QuestionAnswer;
   usage: LlmUsage;
 }
@@ -18,7 +20,18 @@ export interface AnsweredResult {
 export interface QuestionCommand {
   create(question: NewQuestion): Promise<Question>;
   markAnswered(id: string, result: AnsweredResult): Promise<void>;
-  markRefused(id: string, reason: string, usage: LlmUsage | null, generatedSql?: string | null): Promise<void>;
-  saveGeneration(id: string, generatedSql: string, usage: LlmUsage): Promise<void>;
+  markRefused(
+    id: string,
+    reason: string,
+    usage: LlmUsage | null,
+    generatedSql?: string | null,
+    generateSqlPrompt?: string | null,
+  ): Promise<void>;
+  saveGeneration(
+    id: string,
+    generatedSql: string,
+    usage: LlmUsage,
+    generateSqlPrompt?: string | null,
+  ): Promise<void>;
   markFailed(id: string, errorMessage: string): Promise<void>;
 }

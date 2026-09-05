@@ -25,12 +25,14 @@ export interface SqlGeneration {
   sql: string | null;
   refusalReason: string | null;
   usage: LlmUsage;
+  generateSqlPrompt: string | null;
 }
 
 // A natural-language restatement of an already-computed result set.
 export interface Summary {
   text: string;
   usage: LlmUsage;
+  summarizePrompt: string;
 }
 
 export interface LlmProvider {

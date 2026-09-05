@@ -8,6 +8,8 @@ export interface QuestionDto {
   question: string;
   status: QuestionStatus;
   generatedSql: string | null;
+  generateSqlPrompt: string | null;
+  summarizePrompt: string | null;
   answer: QuestionAnswer | null;
   refusalReason: string | null;
   errorMessage: string | null;
@@ -23,6 +25,8 @@ export function toQuestionDto(question: Question): QuestionDto {
     question: question.question,
     status: question.status,
     generatedSql: question.generatedSql,
+    generateSqlPrompt: question.generateSqlPrompt,
+    summarizePrompt: question.summarizePrompt,
     answer: question.answer,
     refusalReason: question.refusalReason,
     errorMessage: question.errorMessage,
